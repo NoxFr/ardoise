@@ -13,15 +13,19 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            name: linux-x86_64
             archive: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            name: windows-x86_64
             archive: zip
           - os: macos-latest
             target: x86_64-apple-darwin
+            name: macos-x86_64
             archive: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
+            name: macos-arm64
             archive: tar.gz
 
     runs-on: ${{ matrix.os }}
@@ -45,18 +49,18 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ardoise-${{ matrix.target }}.tar.gz ardoise
-          mv ardoise-${{ matrix.target }}.tar.gz "$GITHUB_WORKSPACE"
+          tar czf ardoise-${{ matrix.name }}.tar.gz ardoise
+          mv ardoise-${{ matrix.name }}.tar.gz "$GITHUB_WORKSPACE"
 
       - name: Package (zip)
         if: matrix.archive == 'zip'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ardoise-${{ matrix.target }}.zip ardoise.exe
-          mv ardoise-${{ matrix.target }}.zip "$GITHUB_WORKSPACE"
+          7z a ardoise-${{ matrix.name }}.zip ardoise.exe
+          mv ardoise-${{ matrix.name }}.zip "$GITHUB_WORKSPACE"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ardoise-${{ matrix.target }}
-          path: ardoise-${{ matrix.target }}.${{ matrix.archive }}
+          name: ardoise-${{ matrix.name }}
+          path: ardoise-${{ matrix.name }}.${{ matrix.archive }}
