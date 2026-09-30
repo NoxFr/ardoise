@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Ardoise
+Comment=Consommation des agents IA (Claude Code, Codex, OpenCode)
+Exec=systemd-run --user --scope --quiet -p MemoryMax=1G -p CPUQuota=50% ardoise
+Icon=ardoise
+Terminal=false
+Categories=Utility;
+StartupWMClass=ardoise
