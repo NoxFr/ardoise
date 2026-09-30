@@ -1,7 +1,7 @@
 mod common;
 
-use ardoise::providers::claude::Claude;
 use ardoise::providers::Provider;
+use ardoise::providers::claude::Claude;
 use chrono::{Duration, Utc};
 use common::log_line;
 use std::fs;
@@ -72,4 +72,23 @@ fn skips_old_invalid_and_unknown_entries() {
 fn missing_root_yields_nothing() {
     let dir = TempDir::new().unwrap();
     assert!(Claude::with_roots(vec![dir.path().join("absent")]).load(Utc::now()).is_empty());
+}
+
+#[test]
+fn reload_picks_up_appended_lines_and_removed_files() {
+    let dir = TempDir::new().unwrap();
+    let now = Utc::now();
+    let claude = Claude::with_roots(vec![dir.path().to_path_buf()]);
+    write(&dir, "p/s.jsonl", &[log_line("1", "claude-sonnet-5", now, 10, 1)]);
+    write(&dir, "p/other.jsonl", &[log_line("2", "claude-sonnet-5", now, 10, 1)]);
+    assert_eq!(claude.load(now - Duration::days(1)).len(), 2);
+
+    write(
+        &dir,
+        "p/s.jsonl",
+        &[log_line("1", "claude-sonnet-5", now, 10, 1), log_line("3", "claude-sonnet-5", now, 10, 1)],
+    );
+    fs::remove_file(dir.path().join("p/other.jsonl")).unwrap();
+
+    assert_eq!(claude.load(now - Duration::days(1)).len(), 2, "une ligne ajoutée, un fichier supprimé");
 }

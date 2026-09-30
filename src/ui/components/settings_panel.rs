@@ -1,7 +1,7 @@
-use crate::ui::theme::{regular, shade, white, MUTED, TEXT, TEXT_SOFT};
+use crate::ui::theme::{MUTED, TEXT, TEXT_SOFT, regular, shade, white};
 use eframe::egui::{
-    pos2, vec2, Align, Align2, Button, CursorIcon, Frame, Id, Layout, Margin, Rect, RichText, Sense, Stroke, Ui,
-    WidgetInfo, WidgetType,
+    Align, Align2, Button, CursorIcon, Frame, Id, Layout, Margin, Rect, RichText, Sense, Stroke, Ui, WidgetInfo,
+    WidgetType, pos2, vec2,
 };
 
 pub struct Agent<'a> {

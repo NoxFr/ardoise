@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Duration, Local, Months, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
@@ -63,7 +63,21 @@ impl Period {
 }
 
 fn midnight(day: NaiveDate) -> DateTime<Utc> {
-    Local.from_local_datetime(&day.and_hms_opt(0, 0, 0).unwrap()).earliest().unwrap().with_timezone(&Utc)
+    first_existing(day.and_time(NaiveTime::MIN), |t| Local.from_local_datetime(&t).earliest())
+}
+
+/// Premier instant local existant à partir de `t` : là où le passage à l'heure d'été tombe à
+/// minuit, la journée commence à 1 h.
+fn first_existing<Tz: TimeZone>(
+    mut t: NaiveDateTime,
+    resolve: impl Fn(NaiveDateTime) -> Option<DateTime<Tz>>,
+) -> DateTime<Utc> {
+    loop {
+        if let Some(d) = resolve(t) {
+            return d.with_timezone(&Utc);
+        }
+        t += Duration::minutes(15);
+    }
 }
 
 #[cfg(test)]
@@ -91,6 +105,14 @@ mod tests {
         }
         let last = starts.last().unwrap().with_timezone(&Local);
         assert_eq!((last.year(), last.month()), (Local::now().year(), Local::now().month()));
+    }
+
+    #[test]
+    fn day_starting_in_a_dst_gap_starts_at_the_first_existing_instant() {
+        let midnight = NaiveDate::from_ymd_opt(2026, 9, 6).unwrap().and_time(NaiveTime::MIN);
+        let gap_end = midnight + Duration::hours(1);
+        let start = first_existing(midnight, |t| (t >= gap_end).then(|| t.and_utc()));
+        assert_eq!(start.naive_utc(), gap_end);
     }
 
     #[test]

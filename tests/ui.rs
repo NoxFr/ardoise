@@ -6,14 +6,14 @@ use ardoise::domain::usage::Entry;
 use ardoise::settings::Settings;
 use ardoise::ui::theme;
 use chrono::Duration;
-use common::{arc, entry, Fake};
-use eframe::egui::{self, accesskit::Toggled, Vec2};
-use egui_kittest::kittest::{NodeT, Queryable};
+use common::{Fake, arc, entry};
+use eframe::egui::{self, Vec2, accesskit::Toggled};
 use egui_kittest::Harness;
+use egui_kittest::kittest::{NodeT, Queryable};
 use rstest::rstest;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tempfile::TempDir;
 
 type H = Harness<'static, Option<App>>;
@@ -470,16 +470,53 @@ fn window_settles_to_content_height() {
     assert!(settled - bottom < 60.0, "pas de vide en bas ({bottom} vs {settled})");
 }
 
-#[test]
-fn header_items_do_not_overlap() {
-    let (h, _) = harness(None);
+/// Fenêtre de largeur choisie à la main (sinon l'ajustement automatique la ramène à `WIDTH`).
+fn harness_at_width(width: f32) -> (H, TempDir) {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("settings.json");
+    Settings { size: Some([width, 900.0]), ..Default::default() }.save(&path).unwrap();
+    let config = config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), None, Some(path));
+    let mut h = Harness::builder().with_size(Vec2::new(width, 900.0)).build_ui_state(
+        |ui: &mut egui::Ui, app: &mut Option<App>| {
+            if let Some(app) = app {
+                app.show(ui);
+            }
+        },
+        None,
+    );
+    theme::install(&h.ctx);
+    h.step();
+    let ctx = h.ctx.clone();
+    *h.state_mut() = Some(App::new(&ctx, config));
+    wait_loaded(&mut h);
+    (h, dir)
+}
+
+#[rstest]
+#[case(ardoise::app::WIDTH)]
+#[case(360.0)]
+#[case(320.0)]
+fn header_items_do_not_overlap(#[case] width: f32) {
+    let (h, _dir) = harness_at_width(width);
     let items = ["Ardoise", "Détails", "Jour", "7 j", "30 j", "1 an", "Paramètres", "Rafraîchir", "Fermer"];
     let rects: Vec<_> = items.iter().map(|l| (l, first_rect(&h, l))).collect();
     for (i, (a, ra)) in rects.iter().enumerate() {
+        assert!(ra.left() >= 0.0 && ra.right() <= width, "{a:?} déborde de la fenêtre ({ra:?})");
         for (b, rb) in &rects[i + 1..] {
             assert!(ra.intersect(*rb).area() < 1.0 || !ra.intersects(*rb), "{a:?} chevauche {b:?}");
         }
     }
+}
+
+#[test]
+fn header_fits_on_one_line_at_default_width() {
+    let (h, _) = harness(None);
+    let (title, jour) = (first_rect(&h, "Ardoise"), first_rect(&h, "Jour"));
+    assert!(jour.top() < title.bottom(), "une seule ligne : {title:?} / {jour:?}");
+    let (h, _dir) = harness_at_width(320.0);
+    let (title, jour) = (first_rect(&h, "Ardoise"), first_rect(&h, "Jour"));
+    assert!(jour.top() > title.bottom(), "période sous le titre");
+    assert!(jour.top() - title.bottom() < 20.0, "juste sous le titre, pas au milieu de la fenêtre : {jour:?}");
 }
 
 #[test]
@@ -515,6 +552,17 @@ fn subscribed_provider_shows_tokens_instead_of_cost() {
     h.get_by_label("$0,42 / $1200,00");
     h.get_by_label("Tokens par jour");
     assert!(h.query_by_label("max $10,00").is_none(), "graphique en tokens");
+}
+
+#[test]
+fn subscribed_provider_details_share_tokens_not_cost() {
+    let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(team_plan());
+    let mut h = harness_with(config(claude, opencode_sample(), None, None));
+
+    click(&mut h, "Détails");
+
+    assert_eq!(h.get_all_by_label("50%").count(), 2, "Opus 5.5 et Sonnet 5 : autant de tokens");
+    assert!(h.query_by_label("67%").is_none(), "pas de part au coût");
 }
 
 /// Premier chargement bloqué jusqu'à `release`.
@@ -595,4 +643,76 @@ fn dragging_an_edge_resizes_and_keeps_the_size() {
         again += emitted(&h, |c| matches!(c, egui::ViewportCommand::BeginResize(_))) as usize;
     }
     assert_eq!(again, 0);
+}
+
+// Robustesse
+
+/// Premier chargement normal, puis panique à chaque rechargement.
+struct Flaky(AtomicUsize);
+
+impl ardoise::providers::Provider for Flaky {
+    fn id(&self) -> &'static str {
+        "claude"
+    }
+    fn name(&self) -> &'static str {
+        "Claude Code"
+    }
+    fn available(&self) -> bool {
+        true
+    }
+    fn load(&self, _: chrono::DateTime<chrono::Utc>) -> Vec<Entry> {
+        if self.0.fetch_add(1, Ordering::SeqCst) > 0 {
+            panic!("transcript illisible");
+        }
+        claude_sample()
+    }
+}
+
+#[test]
+fn a_panicking_provider_keeps_its_data_and_does_not_block_loading() {
+    let config = Config {
+        providers: vec![
+            Arc::new(Flaky(AtomicUsize::new(0))),
+            arc(Fake::new("opencode", "OpenCode", opencode_sample())),
+        ],
+        budget: None,
+        settings_path: None,
+    };
+    let mut h = harness_with(config);
+    h.get_by_label("$15,42");
+
+    click(&mut h, "Rafraîchir");
+    wait_loaded(&mut h);
+
+    assert!(!disabled(&h, "Rafraîchir"), "le chargement se termine malgré la panique");
+    h.get_by_label("$15,42");
+}
+
+#[test]
+fn manual_size_is_saved_once_the_resize_settles() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("settings.json");
+    let mut h = harness_with(config(
+        Fake::new("claude", "Claude Code", claude_sample()),
+        opencode_sample(),
+        None,
+        Some(path.clone()),
+    ));
+    let corner = egui::pos2(ardoise::app::WIDTH - 2.0, 1198.0);
+    h.event(egui::Event::PointerMoved(corner));
+    h.event(egui::Event::PointerButton {
+        pos: corner,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::default(),
+    });
+    h.event(egui::Event::PointerMoved(corner + egui::vec2(20.0, 20.0)));
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings().size.is_some());
+    assert!(Settings::load(&path).size.is_none(), "pas d'écriture pendant le redimensionnement");
+
+    std::thread::sleep(std::time::Duration::from_millis(600));
+    h.step();
+
+    assert!(Settings::load(&path).size.is_some());
 }

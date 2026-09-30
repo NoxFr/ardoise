@@ -1,5 +1,5 @@
 use crate::ui::theme::white;
-use eframe::egui::{pos2, vec2, Color32, CornerRadius, Rect, Sense, Ui};
+use eframe::egui::{Color32, CornerRadius, Rect, Sense, Ui, pos2, vec2};
 
 const HEIGHT: f32 = 6.0;
 const GAP: f32 = 2.0;

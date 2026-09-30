@@ -1,5 +1,6 @@
 pub mod claude;
 pub mod codex;
+mod files;
 pub mod opencode;
 
 use crate::domain::subscription::Subscription;

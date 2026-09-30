@@ -1,13 +1,13 @@
 use super::models::display_name;
-use super::pricing::{price, TokenUsage};
+use super::pricing::{TokenUsage, price};
 use crate::domain::usage::Entry;
+use crate::providers::files::{FileCache, jsonl_files};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 #[derive(Deserialize)]
 struct Line {
@@ -78,44 +78,34 @@ fn parse_line(line: &str) -> Option<(Option<String>, Entry)> {
     ))
 }
 
-fn collect_files(dir: &Path, since: SystemTime, out: &mut Vec<PathBuf>) {
-    let Ok(rd) = fs::read_dir(dir) else { return };
-    for e in rd.flatten() {
-        let path = e.path();
-        let Ok(meta) = e.metadata() else { continue };
-        if meta.is_dir() {
-            collect_files(&path, since, out);
-        } else if path.extension().is_some_and(|x| x == "jsonl") && meta.modified().map_or(true, |m| m >= since) {
-            out.push(path);
-        }
-    }
+/// Messages facturés d'un transcript, avec leur clé de dédoublonnage, dans l'ordre du fichier.
+pub type Parsed = Vec<(Option<String>, Entry)>;
+
+fn parse_file(path: &Path) -> Parsed {
+    let Ok(file) = File::open(path) else { return Vec::new() };
+    BufReader::new(file)
+        .lines()
+        .map_while(Result::ok)
+        .filter(|line| line.contains("\"usage\""))
+        .filter_map(|line| parse_line(&line))
+        .collect()
 }
 
 /// Lit les transcripts sous `roots` et renvoie les messages facturés depuis `since`, dédoublonnés.
-pub fn load(roots: &[PathBuf], since: DateTime<Utc>) -> Vec<Entry> {
-    let mut files = Vec::new();
-    for root in roots {
-        collect_files(root, since.into(), &mut files);
-    }
-    let mut keyed: HashMap<String, Entry> = HashMap::new();
+pub fn load(cache: &FileCache<Parsed>, roots: &[PathBuf], since: DateTime<Utc>) -> Vec<Entry> {
+    let files = jsonl_files(roots, since.into());
+    let mut keyed: HashMap<&str, &Entry> = HashMap::new();
     let mut unkeyed = Vec::new();
-    for f in files {
-        let Ok(file) = File::open(&f) else { continue };
-        for line in BufReader::new(file).lines().map_while(Result::ok) {
-            if !line.contains("\"usage\"") {
-                continue;
+    let parsed = cache.refresh(&files, parse_file);
+    for (key, e) in parsed.iter().flat_map(|p| p.iter()).filter(|(_, e)| e.time >= since) {
+        match key {
+            Some(k) => {
+                keyed.insert(k, e);
             }
-            match parse_line(&line) {
-                Some((_, e)) if e.time < since => {}
-                Some((Some(k), e)) => {
-                    keyed.insert(k, e);
-                }
-                Some((None, e)) => unkeyed.push(e),
-                None => {}
-            }
+            None => unkeyed.push(e.clone()),
         }
     }
-    unkeyed.extend(keyed.into_values());
+    unkeyed.extend(keyed.into_values().cloned());
     unkeyed
 }
 

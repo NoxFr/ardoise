@@ -6,7 +6,10 @@ pub fn display_name(model: &str) -> String {
     let words: Vec<String> = parts
         .iter()
         .filter(|p| !p.chars().all(|c| c.is_ascii_digit()))
-        .map(|w| w[..1].to_uppercase() + &w[1..])
+        .map(|w| {
+            let mut chars = w.chars();
+            chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default()
+        })
         .collect();
     format!("{} {}", words.join(" "), version.join(".")).trim().to_string()
 }
@@ -22,6 +25,7 @@ mod tests {
     #[case("claude-haiku-4-5-20251001", "Haiku 4.5")]
     #[case("claude-3-7-sonnet-20250219", "Sonnet 3.7")]
     #[case("claude-fable-5-1", "Fable 5.1")]
+    #[case("claude-opus-5-élan", "Opus Élan 5")]
     fn display_names(#[case] id: &str, #[case] expected: &str) {
         assert_eq!(display_name(id), expected);
     }

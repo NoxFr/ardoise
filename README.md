@@ -22,7 +22,7 @@ Les chemins suivent `CLAUDE_CONFIG_DIR`, `CODEX_HOME` et `XDG_DATA_HOME` s'ils s
 
 ## Installation
 
-Il faut une toolchain Rust ([rustup](https://rustup.rs)).
+Il faut une toolchain Rust 1.95 ou plus récente ([rustup](https://rustup.rs)).
 
 ```bash
 git clone https://github.com/NoxFr/ardoise && cd ardoise
@@ -60,10 +60,12 @@ navigateur. Un modèle absent de la grille garde ses tokens mais compte pour 0 $
 cargo test                    # unitaires, intégration, propriétés, interface (egui_kittest)
 cargo clippy --all-targets
 cargo fmt
+RUST_LOG=ardoise=debug cargo run   # durée et volume de chaque chargement
 ```
 
 L'architecture et les pièges connus sont décrits dans [AGENTS.md](AGENTS.md).
 
 ## Licence
 
-Au choix, [MIT](LICENSE-MIT) ou [Apache 2.0](LICENSE-APACHE).
+Au choix, [MIT](LICENSE-MIT) ou [Apache 2.0](LICENSE-APACHE). La police Inter embarquée est sous
+licence [SIL OFL 1.1](assets/fonts/OFL.txt).

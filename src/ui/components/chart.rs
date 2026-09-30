@@ -2,9 +2,9 @@ use super::cell::cell;
 use crate::domain::period::Granularity;
 use crate::domain::usage::{Bucket, ModelStat};
 use crate::ui::format;
-use crate::ui::theme::{white, MUTED};
+use crate::ui::theme::{MUTED, white};
 use chrono::Local;
-use eframe::egui::{pos2, vec2, Align, Color32, CornerRadius, Rect, RichText, Sense, Shape, Stroke, Ui};
+use eframe::egui::{Align, Color32, CornerRadius, Rect, RichText, Sense, Shape, Stroke, Ui, pos2, vec2};
 
 const HEIGHT: f32 = 52.0;
 
@@ -61,11 +61,9 @@ pub fn chart(
         let x = rect.left() + i as f32 * (w + gap);
         let total = b.total();
         let column = Rect::from_min_max(pos2(x, rect.top()), pos2(x + w, rect.bottom()));
-        ui.interact(column, ui.id().with(("bar", i)), Sense::hover()).on_hover_text(format!(
-            "{} · {}",
-            label(b),
-            value(total)
-        ));
+        ui.interact(column, ui.id().with(("bar", i)), Sense::hover()).on_hover_ui(|ui| {
+            ui.label(format!("{} · {}", label(b), value(total)));
+        });
         if total <= 0.0 || max <= 0.0 {
             continue;
         }

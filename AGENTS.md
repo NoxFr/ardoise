@@ -8,6 +8,7 @@ La maquette de référence est un fichier HTML (thème sombre, couleurs OKLCH) r
 
 ```bash
 cargo run --release                     # lance le widget
+RUST_LOG=ardoise=debug cargo run        # journal des chargements (durée, nombre d'entrées)
 ARDOISE_BUDGET=1200 cargo run           # avec barre « Budget 30 j » (tous agents affichés)
 cargo test                              # unitaires + intégration + propriétés + UI
 cargo clippy --all-targets              # doit rester sans warning
@@ -25,20 +26,24 @@ src/
   settings.rs             réglages persistés (~/.config/ardoise/settings.json) : période, détails,
                           agents affichés, zoom (1.0 = taille de la maquette), taille manuelle
   domain/                 logique pure, sans I/O ni egui
-    usage.rs              Entry, summarize (par modèle), histogram (tranches aux dates données)
+    dashboard.rs          Snapshot (données d'un fournisseur), Dashboard::build : sections triées,
+                          parts, total facturé, dépense 30 j ; calculé une fois par changement
+    usage.rs              Entry, summarize (par modèle), histogram(_by) (tranches aux dates données)
     period.rs             Jour / 7 j / 30 j / 1 an, débuts des barres (heures, jours, mois civils)
     subscription.rs       abonnement forfaitaire : plan + fenêtres de quota (used_percent, reset)
   providers/              une source de données par agent, derrière le trait `Provider`
     mod.rs                trait Provider { id, name, available, load, subscription } + all()
+    files.rs              parcours des .jsonl, FileCache (analyse réutilisée tant que date et taille
+                          du fichier sont inchangées)
     claude/               ~/.claude/projects/**/*.jsonl, tarif API public Anthropic
     codex/                ~/.codex/sessions/**/rollout-*.jsonl, tarif API public OpenAI
     opencode/             ~/.local/share/opencode/opencode.db (SQLite, lecture seule), coût fourni
   ui/
-    theme.rs              jetons de la maquette (OKLCH → sRGB), nuances par modèle, polices
+    theme.rs              jetons de la maquette (OKLCH → sRGB), nuances par modèle, Inter embarquée
     format.rs             formatage fr ($399,70 · 56,1 M · 85% · « oct. 25 »)
     components/           un fichier par composant : header, segmented, settings_panel, total,
                           stacked_bar, provider_section, model_row, chart, budget, subscription,
-                          logos, cell
+                          gauge, logos, cell
 ```
 
 Dépendances : `domain` ne dépend de rien ; `providers` dépend de `domain` ; `ui` dépend de
@@ -107,5 +112,14 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
   et sort du total, de la barre empilée et du budget. Codex lit `rate_limits` des rollouts (vraies
   jauges) ; Claude Code n'a que `~/.claude.json` → `oauthAccount.billingType` du compte *courant* :
   les transcripts ne portent aucun identifiant de compte, impossible de séparer l'historique.
+- Rendu : egui redessine à chaque mouvement de souris. Rien de proportionnel à l'historique dans
+  `App::show` : tout passe par `Dashboard`, mis en cache par (chargement, période, agents, jour).
+- Chargement : chaque fournisseur tourne sous `catch_unwind` ; s'il panique, il garde ses données
+  précédentes et les autres s'affichent (`a_panicking_provider_keeps_its_data_…`). Pas de
+  `panic = "abort"` en release, sinon une panique ferme le widget.
+- Les fournisseurs à fichiers gardent un `FileCache` : un rafraîchissement ne relit que les
+  transcripts ajoutés ou modifiés (≈ 8 ms au lieu de ≈ 300 ms pour 300 Mo).
+- Réglages : écrits tout de suite, sauf une taille qui suit la souris (après 500 ms de calme, ou à
+  la fermeture) ; `manual_size_is_saved_once_the_resize_settles`.
 - Premier chargement : loader, et pas de `fit_window` tant que rien n'est chargé (sinon la fenêtre
   se réduit au loader).

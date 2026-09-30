@@ -1,8 +1,8 @@
 use crate::domain::subscription::{RateLimitWindow, Subscription};
 use crate::ui::format;
-use crate::ui::theme::{white, BUDGET, MUTED};
+use crate::ui::theme::{BUDGET, MUTED};
 use chrono::{DateTime, Utc};
-use eframe::egui::{vec2, Align, Layout, RichText, Sense, Ui};
+use eframe::egui::{Align, Layout, RichText, Sense, Ui, vec2};
 
 fn window_gauge(ui: &mut Ui, w: &RateLimitWindow, now: DateTime<Utc>) {
     ui.horizontal(|ui| {
@@ -16,10 +16,7 @@ fn window_gauge(ui: &mut Ui, w: &RateLimitWindow, now: DateTime<Utc>) {
                 format::resets_in(w.resets_at, now)
             )));
             let (rect, bar_resp) = ui.allocate_exact_size(vec2(ui.available_width(), 4.0), Sense::hover());
-            ui.painter().rect_filled(rect, 2.0, white(0.08));
-            let mut fill = rect;
-            fill.set_width(rect.width() * (w.used_percent / 100.0).clamp(0.0, 1.0) as f32);
-            ui.painter().rect_filled(fill, 2.0, *BUDGET);
+            super::gauge(ui, rect, (w.used_percent / 100.0) as f32, *BUDGET);
             let tooltip = format!(
                 "Quota {} : {} utilisés, réinitialisation le {}",
                 format::window_label(w.window_minutes),

@@ -40,6 +40,9 @@ impl Provider for OpenCode {
     }
 
     fn load(&self, since: DateTime<Utc>) -> Vec<Entry> {
-        db::load(&self.db, since).unwrap_or_default()
+        db::load(&self.db, since).unwrap_or_else(|e| {
+            log::warn!("OpenCode : lecture de {} impossible : {e}", self.db.display());
+            Vec::new()
+        })
     }
 }

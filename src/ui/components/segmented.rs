@@ -1,5 +1,5 @@
-use crate::ui::theme::{regular, white, TAB_OFF, TAB_ON};
-use eframe::egui::{pos2, vec2, Align2, Color32, CursorIcon, Id, Rect, Sense, Ui, WidgetInfo, WidgetType};
+use crate::ui::theme::{TAB_OFF, TAB_ON, regular, white};
+use eframe::egui::{Align2, Color32, CursorIcon, Id, Rect, Sense, Ui, WidgetInfo, WidgetType, pos2, vec2};
 
 const PAD: f32 = 2.0;
 const GAP: f32 = 2.0;
@@ -9,11 +9,7 @@ const TEXT: f32 = 11.0;
 /// Sélecteur compact de la maquette : pastille translucide, option active surélevée.
 /// La taille ne dépend que des libellés, jamais du survol. Renvoie `true` si la sélection change.
 pub fn segmented(ui: &mut Ui, id: Id, labels: &[&str], selected: &mut usize) -> bool {
-    let galleys: Vec<_> =
-        labels.iter().map(|l| ui.painter().layout_no_wrap(l.to_string(), regular(TEXT), Color32::WHITE)).collect();
-    let height = galleys.iter().map(|g| g.size().y).fold(0.0, f32::max) + 2.0 * BTN_PAD[1];
-    let widths: Vec<f32> = galleys.iter().map(|g| g.size().x + 2.0 * BTN_PAD[0]).collect();
-    let total = widths.iter().sum::<f32>() + GAP * (labels.len() as f32 - 1.0) + 2.0 * PAD;
+    let (widths, height, total) = measure(ui, labels);
     let (rect, _) = ui.allocate_exact_size(vec2(total, height + 2.0 * PAD), Sense::hover());
     ui.painter().rect_filled(rect, 8.0, white(0.06));
 
@@ -39,4 +35,19 @@ pub fn segmented(ui: &mut Ui, id: Id, labels: &[&str], selected: &mut usize) -> 
         ui.painter().text(r.center(), Align2::CENTER_CENTER, *label, regular(TEXT), color);
     }
     changed
+}
+
+/// Largeur occupée par `segmented`, pour choisir une mise en page avant de dessiner.
+pub fn segmented_width(ui: &Ui, labels: &[&str]) -> f32 {
+    measure(ui, labels).2
+}
+
+/// Largeur de chaque option, hauteur d'une option, largeur totale.
+fn measure(ui: &Ui, labels: &[&str]) -> (Vec<f32>, f32, f32) {
+    let galleys: Vec<_> =
+        labels.iter().map(|l| ui.painter().layout_no_wrap(l.to_string(), regular(TEXT), Color32::WHITE)).collect();
+    let height = galleys.iter().map(|g| g.size().y).fold(0.0, f32::max) + 2.0 * BTN_PAD[1];
+    let widths: Vec<f32> = galleys.iter().map(|g| g.size().x + 2.0 * BTN_PAD[0]).collect();
+    let total = widths.iter().sum::<f32>() + GAP * (labels.len() as f32 - 1.0) + 2.0 * PAD;
+    (widths, height, total)
 }

@@ -12,11 +12,23 @@ pub struct Entry {
     pub cost: f64,
 }
 
+impl Entry {
+    pub fn tokens(&self) -> u64 {
+        self.input + self.output
+    }
+}
+
 pub struct ModelStat {
     pub name: String,
     pub cost: f64,
     pub input: u64,
     pub output: u64,
+}
+
+impl ModelStat {
+    pub fn tokens(&self) -> u64 {
+        self.input + self.output
+    }
 }
 
 /// `models` est trié du plus cher au moins cher.
@@ -37,11 +49,7 @@ pub fn summarize(entries: &[Entry], since: DateTime<Utc>) -> Summary {
     }
     let mut models: Vec<_> = by.into_values().collect();
     models.sort_by(|a, b| b.cost.total_cmp(&a.cost).then_with(|| a.name.cmp(&b.name)));
-    Summary {
-        cost: models.iter().map(|m| m.cost).sum(),
-        tokens: models.iter().map(|m| m.input + m.output).sum(),
-        models,
-    }
+    Summary { cost: models.iter().map(|m| m.cost).sum(), tokens: models.iter().map(ModelStat::tokens).sum(), models }
 }
 
 pub struct Bucket {
@@ -57,10 +65,15 @@ impl Bucket {
 
 /// Répartit les coûts dans des tranches commençant à `starts` (croissants) ; la dernière est ouverte.
 pub fn histogram(entries: &[Entry], starts: &[DateTime<Utc>]) -> Vec<Bucket> {
+    histogram_by(entries, starts, |e| e.cost)
+}
+
+/// Comme `histogram`, en cumulant `weight` (ex. les tokens) au lieu du coût.
+pub fn histogram_by(entries: &[Entry], starts: &[DateTime<Utc>], weight: impl Fn(&Entry) -> f64) -> Vec<Bucket> {
     let mut buckets: Vec<Bucket> = starts.iter().map(|s| Bucket { start: *s, by_model: HashMap::new() }).collect();
     for e in entries {
         let Some(i) = starts.partition_point(|s| *s <= e.time).checked_sub(1) else { continue };
-        *buckets[i].by_model.entry(e.model.clone()).or_default() += e.cost;
+        *buckets[i].by_model.entry(e.model.clone()).or_default() += weight(e);
     }
     buckets
 }
@@ -105,5 +118,12 @@ mod tests {
         let h = histogram(&entries, &starts);
         assert_eq!(h.iter().map(Bucket::total).collect::<Vec<_>>(), [3.0, 4.0, 0.0], "juillet exclu");
         assert_eq!(h[0].by_model["Sonnet 5"], 1.0);
+    }
+
+    #[test]
+    fn histogram_by_accumulates_the_given_weight() {
+        let entries = vec![mk("2026-08-01T00:00:00Z", "Opus 5", 50.0), mk("2026-08-02T00:00:00Z", "Opus 5", 2.0)];
+        let h = histogram_by(&entries, &[t("2026-08-01T00:00:00Z")], |e| e.tokens() as f64);
+        assert_eq!(h[0].by_model["Opus 5"], 22.0);
     }
 }

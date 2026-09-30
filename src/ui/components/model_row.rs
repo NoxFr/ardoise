@@ -1,8 +1,8 @@
 use super::cell::cell;
 use crate::domain::usage::ModelStat;
 use crate::ui::format;
-use crate::ui::theme::{white, MUTED, TEXT, TEXT_SOFT};
-use eframe::egui::{pos2, vec2, Align, Color32, Rect, RichText, Sense, Ui};
+use crate::ui::theme::{MUTED, TEXT, TEXT_SOFT};
+use eframe::egui::{Align, Color32, Rect, RichText, Sense, Ui, pos2, vec2};
 
 const BAR_W: f32 = 70.0;
 const VALUE_W: f32 = 54.0;
@@ -23,13 +23,6 @@ fn dot(ui: &Ui, left: f32, cy: f32, color: Color32) {
     ui.painter().rect_filled(Rect::from_center_size(pos2(left + 3.0, cy), vec2(6.0, 6.0)), 1.0, color);
 }
 
-fn track(ui: &Ui, rect: Rect, ratio: f32, color: Color32) {
-    ui.painter().rect_filled(rect, 2.0, white(0.08));
-    let mut fill = rect;
-    fill.set_width(rect.width() * ratio.clamp(0.0, 1.0));
-    ui.painter().rect_filled(fill, 2.0, color);
-}
-
 fn compact(ui: &mut Ui, m: &ModelStat, color: Color32, bar: f32, show_cost: bool) {
     let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 16.0), Sense::hover());
     let value_x = rect.right() - VALUE_W;
@@ -37,11 +30,13 @@ fn compact(ui: &mut Ui, m: &ModelStat, color: Color32, bar: f32, show_cost: bool
     dot(ui, rect.left(), rect.center().y, color);
     let name = Rect::from_min_max(pos2(rect.left() + 12.0, rect.top()), pos2(bar_x - GAP, rect.bottom()));
     cell(ui, name, RichText::new(&m.name).size(12.0).color(*TEXT_SOFT), Align::Min);
-    track(ui, Rect::from_center_size(pos2(bar_x + BAR_W / 2.0, rect.center().y), vec2(BAR_W, 3.0)), bar, color);
+    super::gauge(ui, Rect::from_center_size(pos2(bar_x + BAR_W / 2.0, rect.center().y), vec2(BAR_W, 3.0)), bar, color);
     let value = Rect::from_min_max(pos2(value_x, rect.top()), rect.max);
     let text = if show_cost { format::money(m.cost) } else { format::tokens(m.input + m.output) };
     cell(ui, value, RichText::new(text).size(12.0).color(*TEXT_SOFT), Align::Max);
-    resp.on_hover_text(format!("↓ {} entrée · ↑ {} sortie", format::tokens(m.input), format::tokens(m.output)));
+    resp.on_hover_ui(|ui| {
+        ui.label(format!("↓ {} entrée · ↑ {} sortie", format::tokens(m.input), format::tokens(m.output)));
+    });
 }
 
 fn detailed(ui: &mut Ui, m: &ModelStat, color: Color32, bar: f32, share: f64, show_cost: bool) {
@@ -61,7 +56,7 @@ fn detailed(ui: &mut Ui, m: &ModelStat, color: Color32, bar: f32, share: f64, sh
 
     ui.add_space(5.0);
     let (line, _) = ui.allocate_exact_size(vec2(ui.available_width(), 3.0), Sense::hover());
-    track(ui, line, bar, color);
+    super::gauge(ui, line, bar, color);
 
     ui.add_space(5.0);
     ui.horizontal(|ui| {

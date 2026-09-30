@@ -35,8 +35,7 @@ pub fn bucket_label(t: DateTime<Local>, g: Granularity) -> String {
 
 /// Part entre 0 et 1, au format de la maquette : "85%".
 pub fn share(ratio: f64) -> String {
-    let pct = (ratio * 100.0).round();
-    format!("{:.0}%", if pct == 0.0 { 0.0 } else { pct })
+    percent(ratio * 100.0)
 }
 
 /// Pourcentage déjà sur 0-100 (ex. un quota d'abonnement), au même format que `share`.

@@ -4,8 +4,8 @@ use crate::domain::period::Granularity;
 use crate::domain::subscription::Subscription;
 use crate::domain::usage::{Bucket, ModelStat, Summary};
 use crate::ui::format;
-use crate::ui::theme::{semibold, shade, white, MUTED};
-use eframe::egui::{pos2, vec2, Align, Rect, RichText, Sense, Stroke, Ui};
+use crate::ui::theme::{MUTED, semibold, shade, white};
+use eframe::egui::{Align, Rect, RichText, Sense, Stroke, Ui, pos2, vec2};
 
 pub struct Section<'a> {
     pub id: &'a str,
@@ -50,10 +50,11 @@ pub fn provider_section(ui: &mut Ui, s: Section) {
     let colors: Vec<_> = (0..s.summary.models.len()).map(|k| shade(s.id, k)).collect();
     let weight = |m: &ModelStat| if show_cost { m.cost } else { (m.input + m.output) as f64 };
     let biggest = s.summary.models.iter().map(weight).fold(0.0, f64::max);
+    let sum: f64 = s.summary.models.iter().map(weight).sum();
     for (m, color) in s.summary.models.iter().zip(&colors) {
         ui.add_space(8.0);
         let bar = if biggest > 0.0 { (weight(m) / biggest) as f32 } else { 0.0 };
-        let share = if s.summary.cost > 0.0 { m.cost / s.summary.cost } else { 0.0 };
+        let share = if sum > 0.0 { weight(m) / sum } else { 0.0 };
         model_row(ui, m, *color, bar, share, s.details, show_cost);
     }
     ui.add_space(8.0);

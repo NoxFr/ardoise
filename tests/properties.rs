@@ -1,4 +1,4 @@
-use ardoise::domain::usage::{histogram, summarize, Entry};
+use ardoise::domain::usage::{Entry, histogram, summarize};
 use ardoise::ui::format;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use proptest::prelude::*;

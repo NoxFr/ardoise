@@ -54,18 +54,10 @@ pub fn shade(provider: &str, k: usize) -> Color32 {
     oklch((0.78 - k * 0.14).max(0.42), (0.12 - k * 0.02).max(0.06), provider_hue(provider), 1.0)
 }
 
-const REGULAR_FONTS: &[&str] = &[
-    "/usr/share/fonts/opentype/inter/Inter-Regular.otf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-];
-const SEMIBOLD_FONTS: &[&str] = &[
-    "/usr/share/fonts/opentype/inter/Inter-SemiBold.otf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-];
-/// Repli pour les glyphes absents (flèches…).
-const SYMBOL_FONT: &str = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+/// Inter embarquée (licence OFL, `assets/fonts/OFL.txt`) : même rendu quelle que soit la
+/// distribution, et des tests d'interface qui ne dépendent pas des polices installées.
+const REGULAR: &[u8] = include_bytes!("../../assets/fonts/Inter-Regular.otf");
+const SEMIBOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-SemiBold.otf");
 
 pub fn install(ctx: &Context) {
     install_fonts(ctx);
@@ -93,28 +85,12 @@ pub fn install(ctx: &Context) {
 
 fn install_fonts(ctx: &Context) {
     let mut fonts = FontDefinitions::default();
-    let read = |paths: &[&str]| paths.iter().find_map(|p| std::fs::read(p).ok());
-    let add = |fonts: &mut FontDefinitions, name: &str, bytes: Vec<u8>| {
-        fonts.font_data.insert(name.into(), Arc::new(FontData::from_owned(bytes)));
-    };
-    let proportional = fonts.families[&FontFamily::Proportional].clone();
-    let mut regular = proportional.clone();
-    let mut semibold = proportional;
-    if let Some(bytes) = read(REGULAR_FONTS) {
-        add(&mut fonts, "regular", bytes);
-        regular.insert(0, "regular".into());
-    }
-    if let Some(bytes) = read(SEMIBOLD_FONTS) {
-        add(&mut fonts, "semibold", bytes);
-        semibold.insert(0, "semibold".into());
-    }
-    if let Ok(bytes) = std::fs::read(SYMBOL_FONT) {
-        add(&mut fonts, "symbols", bytes);
-        regular.push("symbols".into());
-        semibold.push("symbols".into());
-    }
-    fonts.families.insert(FontFamily::Proportional, regular);
-    fonts.families.insert(FontFamily::Name("semibold".into()), semibold);
+    fonts.font_data.insert("regular".into(), Arc::new(FontData::from_static(REGULAR)));
+    fonts.font_data.insert("semibold".into(), Arc::new(FontData::from_static(SEMIBOLD)));
+    let fallback = fonts.families[&FontFamily::Proportional].clone();
+    let family = |name: &str| std::iter::once(name.to_string()).chain(fallback.iter().cloned()).collect();
+    fonts.families.insert(FontFamily::Proportional, family("regular"));
+    fonts.families.insert(FontFamily::Name("semibold".into()), family("semibold"));
     ctx.set_fonts(fonts);
 }
 

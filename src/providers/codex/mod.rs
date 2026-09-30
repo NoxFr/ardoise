@@ -4,6 +4,7 @@ mod pricing;
 mod rollout;
 
 use super::Provider;
+use super::files::FileCache;
 use crate::domain::subscription::Subscription;
 use crate::domain::usage::Entry;
 use chrono::{DateTime, Utc};
@@ -11,11 +12,12 @@ use std::path::PathBuf;
 
 pub struct Codex {
     roots: Vec<PathBuf>,
+    cache: FileCache<rollout::Rollout>,
 }
 
 impl Codex {
     pub fn with_roots(roots: Vec<PathBuf>) -> Self {
-        Codex { roots }
+        Codex { roots, cache: FileCache::default() }
     }
 }
 
@@ -24,7 +26,7 @@ impl Default for Codex {
         let home = std::env::var("CODEX_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".codex"));
-        Codex { roots: vec![home.join("sessions"), home.join("archived_sessions")] }
+        Codex::with_roots(vec![home.join("sessions"), home.join("archived_sessions")])
     }
 }
 
@@ -42,10 +44,10 @@ impl Provider for Codex {
     }
 
     fn load(&self, since: DateTime<Utc>) -> Vec<Entry> {
-        rollout::load(&self.roots, since)
+        rollout::load(&self.cache, &self.roots, since)
     }
 
     fn subscription(&self) -> Option<Subscription> {
-        rollout::subscription(&self.roots)
+        rollout::subscription(&self.cache, &self.roots)
     }
 }

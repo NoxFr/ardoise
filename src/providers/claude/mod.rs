@@ -5,6 +5,7 @@ mod models;
 mod pricing;
 
 use super::Provider;
+use super::files::FileCache;
 use crate::domain::subscription::Subscription;
 use crate::domain::usage::Entry;
 use chrono::{DateTime, Utc};
@@ -12,13 +13,14 @@ use std::path::{Path, PathBuf};
 
 pub struct Claude {
     roots: Vec<PathBuf>,
+    cache: FileCache<logs::Parsed>,
     /// `~/.claude.json` : ne donne que le compte *actuellement* connecté, pas d'historique.
     account_path: Option<PathBuf>,
 }
 
 impl Claude {
     pub fn with_roots(roots: Vec<PathBuf>) -> Self {
-        Claude { roots, account_path: None }
+        Claude { roots, cache: FileCache::default(), account_path: None }
     }
 }
 
@@ -32,7 +34,7 @@ impl Default for Claude {
             }
         };
         let account_path = std::env::var("HOME").ok().map(|h| PathBuf::from(h).join(".claude.json"));
-        Claude { roots, account_path }
+        Claude { roots, cache: FileCache::default(), account_path }
     }
 }
 
@@ -64,7 +66,7 @@ impl Provider for Claude {
     }
 
     fn load(&self, since: DateTime<Utc>) -> Vec<Entry> {
-        logs::load(&self.roots, since)
+        logs::load(&self.cache, &self.roots, since)
     }
 
     fn subscription(&self) -> Option<Subscription> {

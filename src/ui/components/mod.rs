@@ -1,6 +1,7 @@
 mod budget;
 mod cell;
 mod chart;
+mod gauge;
 mod header;
 mod logos;
 mod model_row;
@@ -13,12 +14,13 @@ mod total;
 
 pub use budget::budget;
 pub use chart::chart;
-pub use header::{header, HeaderAction, HeaderState};
+pub use gauge::gauge;
+pub use header::{HeaderAction, HeaderState, header};
 pub use logos::{app_logo, provider_logo};
 pub use model_row::model_row;
-pub use provider_section::{provider_section, Section};
-pub use segmented::segmented;
-pub use settings_panel::{settings_panel, Agent, SettingsAction};
+pub use provider_section::{Section, provider_section};
+pub use segmented::{segmented, segmented_width};
+pub use settings_panel::{Agent, SettingsAction, settings_panel};
 pub use stacked_bar::stacked_bar;
 pub use subscription::subscription;
 pub use total::total;
