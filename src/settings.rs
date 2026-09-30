@@ -22,6 +22,8 @@ pub struct Settings {
     /// Taille choisie à la souris ; `None` : la hauteur suit le contenu.
     pub size: Option<[f32; 2]>,
     pub auto_refresh: AutoRefresh,
+    /// Budget cible sur 30 jours glissants, tous fournisseurs confondus ; `None` : pas de barre.
+    pub budget: Option<f64>,
 }
 
 impl Default for Settings {
@@ -33,6 +35,7 @@ impl Default for Settings {
             zoom: 1.0,
             size: None,
             auto_refresh: AutoRefresh::default(),
+            budget: None,
         }
     }
 }
@@ -85,6 +88,7 @@ mod tests {
             zoom: 1.3,
             size: Some([500.0, 700.0]),
             auto_refresh: AutoRefresh::S10,
+            budget: Some(1200.0),
         };
         s.save(&path).unwrap();
         assert_eq!(Settings::load(&path), s);

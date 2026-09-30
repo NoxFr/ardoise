@@ -43,8 +43,6 @@ struct DashboardKey {
 
 pub struct Config {
     pub providers: Vec<Arc<dyn Provider>>,
-    /// Budget sur 30 jours glissants, tous fournisseurs confondus.
-    pub budget: Option<f64>,
     /// `None` : réglages non persistés (tests).
     pub settings_path: Option<PathBuf>,
 }
@@ -56,7 +54,6 @@ pub struct App {
     /// Incrémenté à chaque chargement reçu.
     generation: u64,
     dashboard: Option<(DashboardKey, Dashboard)>,
-    budget: Option<f64>,
     settings_path: Option<PathBuf>,
     settings: Settings,
     save_due: Option<Instant>,
@@ -83,7 +80,6 @@ impl App {
             generation: 0,
             dashboard: None,
             show_settings: false,
-            budget: config.budget.filter(|b| *b > 0.0),
             settings_path: config.settings_path,
             settings,
             save_due: None,
@@ -325,11 +321,13 @@ impl App {
                         z > ZOOM_MIN + 1e-3,
                         z < ZOOM_MAX - 1e-3,
                         self.settings.auto_refresh,
+                        self.settings.budget,
                     );
                     match panel {
                         Some(SettingsAction::Toggle(i)) => self.toggle_agent(i),
                         Some(SettingsAction::Zoom(steps)) => self.settings.zoom_by(steps),
                         Some(SettingsAction::AutoRefresh(a)) => self.settings.auto_refresh = a,
+                        Some(SettingsAction::Budget(b)) => self.settings.budget = b,
                         None => {}
                     }
                     ui.add_space(GAP);
@@ -391,7 +389,7 @@ impl App {
                     ui.add_space(SECTION_GAP);
                 }
 
-                if let Some(budget) = self.budget {
+                if let Some(budget) = self.settings.budget.filter(|b| *b > 0.0) {
                     components::budget(ui, dash.month_spent, budget);
                 }
             });

@@ -2,8 +2,8 @@ use super::segmented;
 use crate::domain::refresh::AutoRefresh;
 use crate::ui::theme::{regular, shade, white, MUTED, TEXT, TEXT_SOFT};
 use eframe::egui::{
-    pos2, vec2, Align, Align2, Button, CursorIcon, Frame, Id, Layout, Margin, Rect, RichText, Sense, Stroke, Ui,
-    WidgetInfo, WidgetType,
+    pos2, vec2, Align, Align2, Button, CursorIcon, DragValue, Frame, Id, Layout, Margin, Rect, RichText, Sense, Stroke,
+    Ui, WidgetInfo, WidgetType,
 };
 
 pub struct Agent<'a> {
@@ -17,6 +17,7 @@ pub enum SettingsAction {
     Toggle(usize),
     Zoom(i32),
     AutoRefresh(AutoRefresh),
+    Budget(Option<f64>),
 }
 
 pub fn settings_panel(
@@ -26,6 +27,7 @@ pub fn settings_panel(
     can_shrink: bool,
     can_grow: bool,
     auto_refresh: AutoRefresh,
+    budget: Option<f64>,
 ) -> Option<SettingsAction> {
     let mut action = None;
     Frame::NONE.fill(white(0.04)).corner_radius(10.0).inner_margin(Margin::same(12)).show(ui, |ui| {
@@ -64,6 +66,17 @@ pub fn settings_panel(
                 let mut i = AutoRefresh::ALL.iter().position(|a| *a == auto_refresh).unwrap_or(0);
                 if segmented(ui, Id::new("auto_refresh"), &AutoRefresh::ALL.map(AutoRefresh::label), &mut i) {
                     action = Some(SettingsAction::AutoRefresh(AutoRefresh::ALL[i]));
+                }
+            });
+        });
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Budget cible").size(10.0).color(*MUTED));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                let mut v = budget.unwrap_or(0.0);
+                let resp = ui.add(DragValue::new(&mut v).prefix("$").range(0.0..=1_000_000.0).speed(5.0));
+                if resp.changed() {
+                    action = Some(SettingsAction::Budget((v > 0.0).then_some(v)));
                 }
             });
         });

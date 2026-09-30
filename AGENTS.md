@@ -13,7 +13,6 @@ même changement plutôt qu'après coup.
 ```bash
 cargo run --release                     # lance le widget
 RUST_LOG=ardoise=debug cargo run        # journal des chargements (durée, nombre d'entrées)
-ARDOISE_BUDGET=1200 cargo run           # avec barre « Budget 30 j » (tous agents affichés)
 cargo test                              # unitaires + intégration + propriétés + UI
 cargo clippy --all-targets              # doit rester sans warning
 cargo fmt                               # rustfmt.toml : max_width = 120
@@ -25,11 +24,12 @@ cargo run --release --example screenshot   # widget avec données factices, pour
 
 ```
 src/
-  main.rs                 fenêtre, icône, Config (fournisseurs, budget, chemin des réglages)
+  main.rs                 fenêtre, icône, Config (fournisseurs, chemin des réglages)
   lib.rs                  expose les modules pour les tests d'intégration
   app.rs                  état, chargement en thread, assemblage des composants
   settings.rs             réglages persistés (~/.config/ardoise/settings.json) : période, détails,
-                          agents affichés, zoom (1.0 = taille de la maquette), taille manuelle
+                          agents affichés, zoom (1.0 = taille de la maquette), taille manuelle,
+                          budget cible sur 30 j (0 ou absent : pas de barre)
   domain/                 logique pure, sans I/O ni egui
     dashboard.rs          Snapshot (données d'un fournisseur), Dashboard::build : sections triées,
                           parts, total facturé, dépense 30 j ; calculé une fois par changement

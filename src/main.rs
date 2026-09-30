@@ -6,12 +6,7 @@ use eframe::egui::ViewportBuilder;
 fn main() -> eframe::Result {
     // RUST_LOG=ardoise=debug pour le détail des chargements.
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("ardoise=info")).init();
-    let config = Config {
-        providers: providers::all(),
-        // Budget sur 30 jours, tous fournisseurs : ARDOISE_BUDGET=1200
-        budget: std::env::var("ARDOISE_BUDGET").ok().and_then(|v| v.replace(',', ".").parse().ok()),
-        settings_path: Settings::default_path(),
-    };
+    let config = Config { providers: providers::all(), settings_path: Settings::default_path() };
     let size = config.settings_path.as_deref().map(Settings::load).and_then(|s| s.size).unwrap_or([WIDTH, 600.0]);
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()

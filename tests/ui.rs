@@ -33,22 +33,32 @@ fn opencode_sample() -> Vec<Entry> {
 }
 
 /// Claude Code et OpenCode ont des données locales ; Codex n'est pas installé.
-fn config(claude: Fake, opencode: Vec<Entry>, budget: Option<f64>, settings_path: Option<PathBuf>) -> Config {
+fn config(claude: Fake, opencode: Vec<Entry>, settings_path: Option<PathBuf>) -> Config {
     Config {
         providers: vec![
             arc(claude),
             arc(Fake::new("codex", "Codex", vec![]).unavailable()),
             arc(Fake::new("opencode", "OpenCode", opencode)),
         ],
-        budget,
         settings_path,
     }
+}
+
+/// Écrit un budget dans un fichier de réglages temporaire, gardé en vie tant que le résultat l'est.
+fn budget_settings_path(budget: Option<f64>) -> Option<(TempDir, PathBuf)> {
+    let budget = budget?;
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("settings.json");
+    Settings { budget: Some(budget), ..Default::default() }.save(&path).unwrap();
+    Some((dir, path))
 }
 
 fn harness(budget: Option<f64>) -> (H, Arc<AtomicUsize>) {
     let claude = Fake::new("claude", "Claude Code", claude_sample());
     let calls = claude.calls.clone();
-    (harness_with(config(claude, opencode_sample(), budget, None)), calls)
+    let settings = budget_settings_path(budget);
+    let path = settings.as_ref().map(|(_, p)| p.clone());
+    (harness_with(config(claude, opencode_sample(), path)), calls)
 }
 
 fn harness_with(config: Config) -> H {
@@ -138,7 +148,7 @@ fn providers_are_sorted_by_cost() {
     assert!(first_rect(&h, "Claude Code").top() < first_rect(&h, "OpenCode").top());
 
     let claude = Fake::new("claude", "Claude Code", vec![entry("Opus 5.5", Duration::minutes(1), 0.1)]);
-    let h = harness_with(config(claude, opencode_sample(), None, None));
+    let h = harness_with(config(claude, opencode_sample(), None));
     assert!(first_rect(&h, "OpenCode").top() < first_rect(&h, "Claude Code").top());
 }
 
@@ -152,7 +162,7 @@ fn shows_shares_of_total_and_of_provider() {
 #[test]
 fn selected_agent_is_shown_even_without_spend() {
     let claude = Fake::new("claude", "Claude Code", claude_sample());
-    let h = harness_with(config(claude, vec![], None, None));
+    let h = harness_with(config(claude, vec![], None));
     h.get_by_label("OpenCode");
     h.get_by_label("Aucune dépense sur la période");
 }
@@ -190,7 +200,7 @@ fn year_period_groups_by_month() {
 
 #[test]
 fn shows_empty_sections_when_nothing_was_spent() {
-    let h = harness_with(config(Fake::new("claude", "Claude Code", vec![]), vec![], None, None));
+    let h = harness_with(config(Fake::new("claude", "Claude Code", vec![]), vec![], None));
     assert_eq!(h.get_all_by_label("$0,00").count(), 3, "total + deux sections");
     assert_eq!(h.get_all_by_label("Aucune dépense sur la période").count(), 2);
 }
@@ -233,7 +243,7 @@ fn refresh_button_reloads() {
 fn refresh_is_disabled_while_loading() {
     let (claude, release) = Fake::new("claude", "Claude Code", claude_sample()).gated();
     let calls = claude.calls.clone();
-    let mut h = harness_with(config(claude, opencode_sample(), None, None));
+    let mut h = harness_with(config(claude, opencode_sample(), None));
 
     click(&mut h, "Rafraîchir");
     assert!(disabled(&h, "Rafraîchir"));
@@ -346,8 +356,7 @@ fn zoom_is_bounded() {
 fn auto_refresh_interval_can_be_changed_and_is_persisted() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("settings.json");
-    let make =
-        || config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), None, Some(path.clone()));
+    let make = || config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), Some(path.clone()));
     let mut h = harness_with(make());
     open_settings(&mut h);
     let toggled = |h: &H, l| h.get_by_label(l).accesskit_node().toggled();
@@ -367,8 +376,7 @@ fn auto_refresh_interval_can_be_changed_and_is_persisted() {
 fn settings_are_persisted_and_restored() {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("settings.json");
-    let make =
-        || config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), None, Some(path.clone()));
+    let make = || config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), Some(path.clone()));
     let mut h = harness_with(make());
 
     click(&mut h, "30 j");
@@ -497,7 +505,7 @@ fn harness_at_width(width: f32) -> (H, TempDir) {
     let dir = TempDir::new().unwrap();
     let path = dir.path().join("settings.json");
     Settings { size: Some([width, 900.0]), ..Default::default() }.save(&path).unwrap();
-    let config = config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), None, Some(path));
+    let config = config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), Some(path));
     let mut h = Harness::builder().with_size(Vec2::new(width, 900.0)).build_ui_state(
         |ui: &mut egui::Ui, app: &mut Option<App>| {
             if let Some(app) = app {
@@ -564,7 +572,9 @@ fn team_plan() -> ardoise::domain::subscription::Subscription {
 #[test]
 fn subscribed_provider_shows_tokens_instead_of_cost() {
     let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(team_plan());
-    let h = harness_with(config(claude, opencode_sample(), Some(1200.0), None));
+    let settings = budget_settings_path(Some(1200.0));
+    let path = settings.as_ref().map(|(_, p)| p.clone());
+    let h = harness_with(config(claude, opencode_sample(), path));
 
     h.get_by_label("Team");
     assert!(h.query_by_label("$15,42").is_none(), "l'abonnement sort du total");
@@ -591,7 +601,7 @@ fn subscription_shows_named_quota_windows() {
         secondary: Some(RateLimitWindow { used_percent: 0.0, window_minutes: 43_200, resets_at: monthly }),
     };
     let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(sub);
-    let h = harness_with(config(claude, opencode_sample(), None, None));
+    let h = harness_with(config(claude, opencode_sample(), None));
 
     h.get_by_label("Session 5 h");
     h.get_by_label("42% · reset dans 3 h");
@@ -602,7 +612,7 @@ fn subscription_shows_named_quota_windows() {
 #[test]
 fn usage_based_plan_is_shown_but_keeps_the_cost() {
     let claude = Fake::new("claude", "Claude Code", claude_sample()).with_plan("enterprise");
-    let h = harness_with(config(claude, opencode_sample(), None, None));
+    let h = harness_with(config(claude, opencode_sample(), None));
 
     h.get_by_label("Enterprise");
     h.get_by_label("$15,42");
@@ -612,7 +622,7 @@ fn usage_based_plan_is_shown_but_keeps_the_cost() {
 #[test]
 fn plan_badge_sits_between_name_and_value() {
     let claude = Fake::new("claude", "Claude Code", claude_sample()).with_plan("enterprise");
-    let h = harness_with(config(claude, opencode_sample(), None, None));
+    let h = harness_with(config(claude, opencode_sample(), None));
 
     let (name, badge, value) = (first_rect(&h, "Claude Code"), first_rect(&h, "Enterprise"), first_rect(&h, "$15,00"));
     assert!(badge.left() >= name.right(), "{badge:?} après {name:?}");
@@ -623,7 +633,7 @@ fn plan_badge_sits_between_name_and_value() {
 #[test]
 fn subscribed_provider_details_share_tokens_not_cost() {
     let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(team_plan());
-    let mut h = harness_with(config(claude, opencode_sample(), None, None));
+    let mut h = harness_with(config(claude, opencode_sample(), None));
 
     click(&mut h, "Détails");
 
@@ -653,8 +663,7 @@ impl ardoise::providers::Provider for Slow {
 #[test]
 fn shows_a_loader_until_the_first_load() {
     let (release, rx) = std::sync::mpsc::channel();
-    let config =
-        Config { providers: vec![Arc::new(Slow(std::sync::Mutex::new(rx)))], budget: None, settings_path: None };
+    let config = Config { providers: vec![Arc::new(Slow(std::sync::Mutex::new(rx)))], settings_path: None };
     let mut h = Harness::builder().with_size(Vec2::new(ardoise::app::WIDTH, 1200.0)).build_ui_state(
         |ui: &mut egui::Ui, app: &mut Option<App>| {
             if let Some(app) = app {
@@ -741,7 +750,6 @@ fn a_panicking_provider_keeps_its_data_and_does_not_block_loading() {
             Arc::new(Flaky(AtomicUsize::new(0))),
             arc(Fake::new("opencode", "OpenCode", opencode_sample())),
         ],
-        budget: None,
         settings_path: None,
     };
     let mut h = harness_with(config);
@@ -761,7 +769,6 @@ fn manual_size_is_saved_once_the_resize_settles() {
     let mut h = harness_with(config(
         Fake::new("claude", "Claude Code", claude_sample()),
         opencode_sample(),
-        None,
         Some(path.clone()),
     ));
     let corner = egui::pos2(ardoise::app::WIDTH - 2.0, 1198.0);

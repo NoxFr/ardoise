@@ -54,18 +54,13 @@ install -Dm644 assets/ardoise.desktop ~/.local/share/applications/ardoise.deskto
 - **Pastille de plan** : à côté d'un agent, le plan du compte (ex. `Max`, `Team`, `Enterprise`).
   Sous abonnement forfaitaire, la section affiche des tokens au lieu d'un montant et sort du
   total ; une jauge nommée indique l'avancement de chaque fenêtre de quota.
-- **Roue crantée** : agents affichés, taille du widget et intervalle d'actualisation automatique
-  (désactivé, 5 s à 5 min).
+- **Roue crantée** : agents affichés, taille du widget, intervalle d'actualisation automatique
+  (désactivé, 5 s à 5 min) et budget cible sur 30 jours glissants, tous agents confondus (une
+  valeur à 0 masque la barre).
 - La fenêtre se déplace en glissant n'importe où sur le fond.
 
-Pour une barre de budget sur 30 jours glissants, tous agents confondus :
-
-```bash
-ARDOISE_BUDGET=400 ardoise
-```
-
-Les réglages (période, détails, agents affichés, taille, intervalle d'actualisation) sont gardés
-dans `~/.config/ardoise/settings.json`.
+Les réglages (période, détails, agents affichés, taille, intervalle d'actualisation, budget) sont
+gardés dans `~/.config/ardoise/settings.json`.
 
 ## Limites
 
