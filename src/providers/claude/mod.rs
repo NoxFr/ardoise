@@ -38,19 +38,30 @@ impl Default for Claude {
     }
 }
 
-/// Type de facturation du compte actuellement connecté, si c'est un abonnement forfaitaire.
+/// Facturation et plan du compte actuellement connecté.
 /// `~/.claude.json` ne garde que le compte courant : rien à en tirer sur les sessions passées.
-fn active_subscription(path: &Path) -> Option<Subscription> {
+fn account(path: &Path) -> Option<(String, String)> {
     let raw = std::fs::read_to_string(path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&raw).ok()?;
     let account = &v["oauthAccount"];
     let billing = account["billingType"].as_str()?;
-    // `*_contracted` : contrat Enterprise facturé à l'usage, pas un forfait.
-    if !billing.contains("subscription") || billing.contains("contracted") {
-        return None;
-    }
     let plan = account["seatTier"].as_str().unwrap_or(billing);
-    Some(Subscription { plan: plan.to_string(), primary: None, secondary: None })
+    Some((billing.to_string(), plan.to_string()))
+}
+
+/// `*_contracted` : contrat Enterprise facturé à l'usage, pas un forfait.
+fn is_flat_rate(billing: &str) -> bool {
+    billing.contains("subscription") && !billing.contains("contracted")
+}
+
+fn active_subscription(path: &Path) -> Option<Subscription> {
+    let (billing, plan) = account(path)?;
+    is_flat_rate(&billing).then_some(Subscription { plan, primary: None, secondary: None })
+}
+
+fn usage_based_plan(path: &Path) -> Option<String> {
+    let (billing, plan) = account(path)?;
+    billing.contains("contracted").then_some(plan)
 }
 
 impl Provider for Claude {
@@ -72,6 +83,10 @@ impl Provider for Claude {
 
     fn subscription(&self) -> Option<Subscription> {
         active_subscription(self.account_path.as_deref()?)
+    }
+
+    fn plan(&self) -> Option<String> {
+        usage_based_plan(self.account_path.as_deref()?)
     }
 }
 
@@ -111,6 +126,17 @@ mod tests {
             r#"{"oauthAccount":{"billingType":"stripe_subscription_contracted","seatTier":"enterprise"}}"#,
         );
         assert!(active_subscription(&path).is_none());
+        assert_eq!(usage_based_plan(&path).as_deref(), Some("enterprise"));
+    }
+
+    #[test]
+    fn flat_rate_and_api_billing_have_no_usage_based_plan() {
+        let dir = TempDir::new().unwrap();
+        let path =
+            write_account(&dir, r#"{"oauthAccount":{"billingType":"stripe_subscription","seatTier":"team_standard"}}"#);
+        assert!(usage_based_plan(&path).is_none());
+        let path = write_account(&dir, r#"{"oauthAccount":{"billingType":"api_key"}}"#);
+        assert!(usage_based_plan(&path).is_none());
     }
 
     #[test]

@@ -21,6 +21,10 @@ pub trait Provider: Send + Sync {
     fn subscription(&self) -> Option<Subscription> {
         None
     }
+    /// Plan du compte hors forfait (ex. contrat Enterprise facturé à l'usage), pour information.
+    fn plan(&self) -> Option<String> {
+        None
+    }
 }
 
 pub fn all() -> Vec<Arc<dyn Provider>> {

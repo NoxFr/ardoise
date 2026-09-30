@@ -21,11 +21,17 @@ pub struct Fake {
     pub gate: Option<Mutex<mpsc::Receiver<()>>>,
     pub available: bool,
     pub subscription: Option<Subscription>,
+    pub plan: Option<String>,
 }
 
 impl Fake {
     pub fn new(id: &'static str, name: &'static str, entries: Vec<Entry>) -> Self {
-        Fake { id, name, entries, calls: Arc::default(), gate: None, available: true, subscription: None }
+        Fake { id, name, entries, calls: Arc::default(), gate: None, available: true, subscription: None, plan: None }
+    }
+
+    pub fn with_plan(mut self, plan: &str) -> Self {
+        self.plan = Some(plan.into());
+        self
     }
 
     pub fn subscribed(mut self, s: Subscription) -> Self {
@@ -69,6 +75,10 @@ impl Provider for Fake {
 
     fn subscription(&self) -> Option<Subscription> {
         self.subscription.clone()
+    }
+
+    fn plan(&self) -> Option<String> {
+        self.plan.clone()
     }
 }
 

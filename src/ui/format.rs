@@ -55,10 +55,30 @@ pub fn window_label(minutes: i64) -> String {
     }
 }
 
-/// Temps restant avant réinitialisation, depuis `now` : "12 min", "3 h", "2 j".
-pub fn resets_in(resets_at: DateTime<Utc>, now: DateTime<Utc>) -> String {
+/// Plan du compte tel que l'écrit l'agent, réduit à son premier mot : "team_standard" → "Team".
+pub fn plan_name(raw: &str) -> String {
+    let mut chars = raw.split('_').next().unwrap_or_default().chars();
+    chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default()
+}
+
+/// Nom d'une fenêtre de quota : "Session 5 h", "Hebdomadaire", "Mensuel".
+pub fn window_name(minutes: i64) -> String {
+    match minutes {
+        10_080 => "Hebdomadaire".into(),
+        43_200 => "Mensuel".into(),
+        m if m < 24 * 60 => format!("Session {}", window_label(m)),
+        m => format!("Sur {}", window_label(m)),
+    }
+}
+
+/// Réinitialisation : relative sous 24 h ("reset dans 3 h"), sinon la date ("reset le 30/10").
+pub fn reset(resets_at: DateTime<Utc>, now: DateTime<Utc>) -> String {
     let minutes = (resets_at - now).num_minutes().max(0);
-    window_label(minutes)
+    if minutes < 24 * 60 {
+        format!("reset dans {}", window_label(minutes))
+    } else {
+        format!("reset le {}", resets_at.with_timezone(&Local).format("%d/%m"))
+    }
 }
 
 #[cfg(test)]
@@ -118,11 +138,31 @@ mod tests {
         assert_eq!(window_label(minutes), expected);
     }
 
+    #[rstest]
+    #[case("free", "Free")]
+    #[case("team_standard", "Team")]
+    #[case("enterprise_usage_based", "Enterprise")]
+    #[case("", "")]
+    fn formats_plan_name(#[case] raw: &str, #[case] expected: &str) {
+        assert_eq!(plan_name(raw), expected);
+    }
+
+    #[rstest]
+    #[case(300, "Session 5 h")]
+    #[case(10_080, "Hebdomadaire")]
+    #[case(43_200, "Mensuel")]
+    #[case(2_880, "Sur 2 j")]
+    fn names_quota_windows(#[case] minutes: i64, #[case] expected: &str) {
+        assert_eq!(window_name(minutes), expected);
+    }
+
     #[test]
-    fn formats_time_left_before_reset() {
+    fn formats_reset() {
         let now = t("2026-09-30T00:00:00Z");
-        assert_eq!(resets_in(t("2026-09-30T03:00:00Z"), now), "3 h");
-        assert_eq!(resets_in(t("2026-09-29T23:00:00Z"), now), "0 min", "déjà passé, borné à 0");
+        assert_eq!(reset(t("2026-09-30T03:00:00Z"), now), "reset dans 3 h");
+        assert_eq!(reset(t("2026-09-29T23:00:00Z"), now), "reset dans 0 min", "déjà passé, borné à 0");
+        let later = t("2026-10-30T12:00:00Z");
+        assert_eq!(reset(later, now), format!("reset le {}", later.with_timezone(&Local).format("%d/%m")));
     }
 
     fn t(s: &str) -> DateTime<Utc> {

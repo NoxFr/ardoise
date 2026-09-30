@@ -566,7 +566,7 @@ fn subscribed_provider_shows_tokens_instead_of_cost() {
     let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(team_plan());
     let h = harness_with(config(claude, opencode_sample(), Some(1200.0), None));
 
-    h.get_by_label("Abonnement · team_standard");
+    h.get_by_label("Team");
     assert!(h.query_by_label("$15,42").is_none(), "l'abonnement sort du total");
     assert!(h.query_by_label("$15,00").is_none(), "pas de $ pour la section en abonnement");
     assert!(h.query_by_label("$10,00").is_none(), "ni pour ses modèles");
@@ -574,6 +574,50 @@ fn subscribed_provider_shows_tokens_instead_of_cost() {
     h.get_by_label("$0,42 / $1200,00");
     h.get_by_label("Tokens par jour");
     assert!(h.query_by_label("max $10,00").is_none(), "graphique en tokens");
+}
+
+#[test]
+fn subscription_shows_named_quota_windows() {
+    use ardoise::domain::subscription::{RateLimitWindow, Subscription};
+    let now = chrono::Utc::now();
+    let monthly = now + chrono::Duration::days(29);
+    let sub = Subscription {
+        plan: "plus".into(),
+        primary: Some(RateLimitWindow {
+            used_percent: 42.0,
+            window_minutes: 300,
+            resets_at: now + chrono::Duration::minutes(185),
+        }),
+        secondary: Some(RateLimitWindow { used_percent: 0.0, window_minutes: 43_200, resets_at: monthly }),
+    };
+    let claude = Fake::new("claude", "Claude Code", claude_sample()).subscribed(sub);
+    let h = harness_with(config(claude, opencode_sample(), None, None));
+
+    h.get_by_label("Session 5 h");
+    h.get_by_label("42% · reset dans 3 h");
+    h.get_by_label("Mensuel");
+    h.get_by_label(&format!("0% · reset le {}", monthly.with_timezone(&chrono::Local).format("%d/%m")));
+}
+
+#[test]
+fn usage_based_plan_is_shown_but_keeps_the_cost() {
+    let claude = Fake::new("claude", "Claude Code", claude_sample()).with_plan("enterprise");
+    let h = harness_with(config(claude, opencode_sample(), None, None));
+
+    h.get_by_label("Enterprise");
+    h.get_by_label("$15,42");
+    h.get_by_label("$15,00");
+}
+
+#[test]
+fn plan_badge_sits_between_name_and_value() {
+    let claude = Fake::new("claude", "Claude Code", claude_sample()).with_plan("enterprise");
+    let h = harness_with(config(claude, opencode_sample(), None, None));
+
+    let (name, badge, value) = (first_rect(&h, "Claude Code"), first_rect(&h, "Enterprise"), first_rect(&h, "$15,00"));
+    assert!(badge.left() >= name.right(), "{badge:?} après {name:?}");
+    assert!(badge.right() < value.left(), "{badge:?} avant {value:?}");
+    assert!((badge.center().y - name.center().y).abs() < 2.0, "sur la même ligne");
 }
 
 #[test]

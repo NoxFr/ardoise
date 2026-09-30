@@ -112,6 +112,8 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
   et sort du total, de la barre empilée et du budget. Codex lit `rate_limits` des rollouts (vraies
   jauges) ; Claude Code n'a que `~/.claude.json` → `oauthAccount.billingType` du compte *courant* :
   les transcripts ne portent aucun identifiant de compte, impossible de séparer l'historique.
+  Le plan s'affiche en pastille dans l'en-tête de section : celui de l'abonnement, sinon
+  `Provider::plan()` (contrat Enterprise `*_contracted`, qui reste en $).
 - Rendu : egui redessine à chaque mouvement de souris. Rien de proportionnel à l'historique dans
   `App::show` : tout passe par `Dashboard`, mis en cache par (chargement, période, agents, jour).
 - Chargement : chaque fournisseur tourne sous `catch_unwind` ; s'il panique, il garde ses données

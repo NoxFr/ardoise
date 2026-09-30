@@ -364,6 +364,9 @@ impl App {
                     .collect();
                 components::stacked_bar(ui, &parts);
                 ui.add_space(GAP);
+                let (rule, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), Sense::hover());
+                ui.painter().hline(rule.x_range(), rule.center().y, Stroke::new(1.0_f32, white(0.07)));
+                ui.add_space(GAP);
 
                 if dash.sections.is_empty() {
                     ui.label(RichText::new("Aucun agent sélectionné").size(12.0).color(*MUTED));
@@ -382,6 +385,7 @@ impl App {
                             granularity: period.granularity(),
                             details: self.settings.details,
                             subscription: subscription(s.provider),
+                            plan: self.snapshots[s.provider].plan.as_deref(),
                         },
                     );
                     ui.add_space(SECTION_GAP);
@@ -422,9 +426,10 @@ fn cached_dashboard<'a>(
 /// sont affichés normalement.
 fn load(provider: &dyn Provider, since: DateTime<chrono::Utc>) -> Option<Snapshot> {
     let started = Instant::now();
-    let snapshot = std::panic::catch_unwind(AssertUnwindSafe(|| Snapshot {
-        entries: provider.load(since),
-        subscription: provider.subscription(),
+    let snapshot = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let subscription = provider.subscription();
+        let plan = subscription.as_ref().map(|s| s.plan.clone()).filter(|p| !p.is_empty()).or_else(|| provider.plan());
+        Snapshot { entries: provider.load(since), subscription, plan }
     }));
     match snapshot {
         Ok(s) => {
@@ -510,6 +515,7 @@ mod tests {
                 cost: 2.0,
             }],
             subscription: None,
+            plan: None,
         };
         let mut cache = None;
         assert_eq!(cached_dashboard(&mut cache, key(0), &[Snapshot::default()]).total, 0.0);

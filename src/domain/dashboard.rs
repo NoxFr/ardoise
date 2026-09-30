@@ -8,6 +8,8 @@ use std::cmp::Reverse;
 pub struct Snapshot {
     pub entries: Vec<Entry>,
     pub subscription: Option<Subscription>,
+    /// Plan affiché en en-tête : celui de l'abonnement, sinon le plan facturé à l'usage.
+    pub plan: Option<String>,
 }
 
 pub struct Section {
@@ -82,7 +84,7 @@ mod tests {
     }
 
     fn snapshot(entries: Vec<Entry>, subscription: Option<Subscription>) -> Snapshot {
-        Snapshot { entries, subscription }
+        Snapshot { entries, subscription, plan: None }
     }
 
     fn plan() -> Option<Subscription> {

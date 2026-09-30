@@ -4,8 +4,8 @@ use crate::domain::period::Granularity;
 use crate::domain::subscription::Subscription;
 use crate::domain::usage::{Bucket, ModelStat, Summary};
 use crate::ui::format;
-use crate::ui::theme::{semibold, shade, white, MUTED};
-use eframe::egui::{pos2, vec2, Align, Rect, RichText, Sense, Stroke, Ui};
+use crate::ui::theme::{semibold, shade, white, MUTED, TEXT};
+use eframe::egui::{pos2, vec2, Align, Pos2, Rect, Response, RichText, Sense, Stroke, Ui};
 
 pub struct Section<'a> {
     pub id: &'a str,
@@ -17,6 +17,18 @@ pub struct Section<'a> {
     pub granularity: Granularity,
     pub details: bool,
     pub subscription: Option<&'a Subscription>,
+    pub plan: Option<&'a str>,
+}
+
+/// Pastille du plan, à la suite du nom, sans dépasser `max_right`.
+fn plan_badge(ui: &mut Ui, left_center: Pos2, max_right: f32, plan: &str, provider: &str) -> Response {
+    let color = shade(provider, 0);
+    let font = semibold(10.0);
+    let width = ui.painter().layout_no_wrap(plan.into(), font.clone(), color).size().x + 12.0;
+    let right = (left_center.x + width).min(max_right);
+    let rect = Rect::from_min_max(pos2(left_center.x, left_center.y - 8.0), pos2(right, left_center.y + 8.0));
+    ui.painter().rect_filled(rect, 8.0, color.gamma_multiply(0.18));
+    cell(ui, rect.shrink2(vec2(6.0, 0.0)), RichText::new(plan).font(font).color(color), Align::Min)
 }
 
 pub fn provider_section(ui: &mut Ui, s: Section) {
@@ -37,8 +49,19 @@ pub fn provider_section(ui: &mut Ui, s: Section) {
     if !show_cost {
         value_cell.on_hover_text("Tokens consommés, déjà couverts par l'abonnement (pas de coût à l'appel)");
     }
-    let name = Rect::from_min_max(pos2(row.left() + 18.0, row.top()), pos2(row.center().x, row.bottom()));
+    let name_width = ui.painter().layout_no_wrap(s.name.into(), semibold(14.0), *TEXT).size().x;
+    let name_right = (row.left() + 19.0 + name_width).min(row.center().x);
+    let name = Rect::from_min_max(pos2(row.left() + 18.0, row.top()), pos2(name_right, row.bottom()));
     cell(ui, name, RichText::new(s.name).font(semibold(14.0)), Align::Min);
+    if let Some(plan) = s.plan.map(format::plan_name).filter(|p| !p.is_empty()) {
+        let tooltip = if show_cost {
+            "Facturé à l'usage : coût estimé au tarif API public"
+        } else {
+            "Forfait : l'usage est déjà couvert par l'abonnement, pas de coût à l'appel"
+        };
+        plan_badge(ui, pos2(name.right() + 8.0, row.center().y), value.right() - 60.0, &plan, s.id)
+            .on_hover_text(tooltip);
+    }
     ui.add_space(6.0);
     let (rule, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
     ui.painter().hline(rule.x_range(), rule.center().y, Stroke::new(1.0_f32, white(0.07)));
