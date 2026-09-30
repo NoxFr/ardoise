@@ -441,6 +441,21 @@ fn dragging_the_background_moves_the_window() {
     assert!(press_started_window_drag(&mut h, "Dépenses par jour", 20.0));
 }
 
+#[test]
+fn hovering_a_chart_bar_shows_its_amount() {
+    let (mut h, _) = harness(None);
+    // Premier graphique (Claude Code), dernière barre : aujourd'hui, $10,00.
+    let title = first_rect(&h, "Dépenses par jour");
+    let right = h.get_all_by_label_contains("moy.").next().unwrap().rect().right();
+    let before = h.get_all_by_label_contains("$10,00").count();
+
+    h.event(egui::Event::PointerMoved(egui::pos2(right - 25.0, title.bottom() + 30.0)));
+    h.run_steps(60);
+
+    let after = h.get_all_by_label_contains("$10,00").count();
+    assert_eq!(after, before + 1, "bulle avec le montant de la barre survolée");
+}
+
 /// Après un `StartDrag`, egui croit le bouton toujours enfoncé : le renvoyer à chaque frame
 /// gelait GNOME Shell.
 #[test]

@@ -30,14 +30,16 @@ pub fn chart(
     };
     let small = |t: String| RichText::new(t).size(10.0).color(*MUTED);
     let max = buckets.iter().map(Bucket::total).fold(0.0, f64::max);
+    let mean =
+        if buckets.is_empty() { 0.0 } else { buckets.iter().map(Bucket::total).sum::<f64>() / buckets.len() as f64 };
 
     ui.add_space(8.0);
     let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), 13.0), Sense::hover());
     cell(ui, row, small(title.into()), Align::Min);
-    cell(ui, row, small(format!("max {}", value(max))), Align::Max);
+    cell(ui, row, small(format!("moy. {} · max {}", value(mean), value(max))), Align::Max);
     ui.add_space(8.0);
 
-    let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), HEIGHT), Sense::hover());
+    let (rect, area) = ui.allocate_exact_size(vec2(ui.available_width(), HEIGHT), Sense::hover());
     let p = ui.painter();
     p.hline(rect.x_range(), rect.top(), Stroke::new(1.0_f32, white(0.1)));
     p.hline(rect.x_range(), rect.bottom(), Stroke::new(1.0_f32, white(0.1)));
@@ -61,7 +63,8 @@ pub fn chart(
         let x = rect.left() + i as f32 * (w + gap);
         let total = b.total();
         let column = Rect::from_min_max(pos2(x, rect.top()), pos2(x + w, rect.bottom()));
-        ui.interact(column, ui.id().with(("bar", i)), Sense::hover()).on_hover_ui(|ui| {
+        // Id propre à ce graphique : plusieurs sections partagent le même `ui`.
+        ui.interact(column, area.id.with(i), Sense::hover()).on_hover_ui(|ui| {
             ui.label(format!("{} · {}", label(b), value(total)));
         });
         if total <= 0.0 || max <= 0.0 {

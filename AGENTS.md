@@ -113,6 +113,10 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
 - kittest ne garde que la sortie du dernier frame d'un `step()` : pour tester une commande de
   viewport émise à l'appui, injecter les événements à la main.
 - AccessKit expose l'état « sélectionné » d'egui comme `toggled`, pas `selected`.
+- Un composant répété dans le même `ui` (un graphique par section) ne doit pas dériver ses ids de
+  `ui.id()` : les ids se confondent, le dernier rectangle écrase les autres et le survol ne marche
+  que sur la dernière section. Dériver de la réponse d'allocation (`area.id.with(i)`),
+  cf. `hovering_a_chart_bar_shows_its_amount`.
 - Les coûts Claude et Codex sont des estimations au tarif API public ; ils ne couvrent pas les
   interfaces web ni les autres machines, et diffèrent d'une facturation Enterprise.
 - Abonnement : un fournisseur dont `subscription()` renvoie `Some` affiche des tokens au lieu de $
