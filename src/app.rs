@@ -12,7 +12,6 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-const REFRESH_EVERY: Duration = Duration::from_secs(60);
 pub const WIDTH: f32 = 440.0;
 const PADDING: i8 = 18;
 const GAP: f32 = 16.0;
@@ -159,10 +158,12 @@ impl App {
             self.updated = Some(Local::now());
             self.loading = false;
         }
-        if !self.loading && self.last_refresh.elapsed() >= REFRESH_EVERY {
-            self.refresh(ctx);
+        if let Some(every) = self.settings.auto_refresh.duration() {
+            if !self.loading && self.last_refresh.elapsed() >= every {
+                self.refresh(ctx);
+            }
+            ctx.request_repaint_after(every.saturating_sub(self.last_refresh.elapsed()));
         }
-        ctx.request_repaint_after(REFRESH_EVERY);
     }
 
     /// Ajuste la hauteur de fenêtre au contenu, bornée à l'écran, au plus une fois par
@@ -317,9 +318,18 @@ impl App {
                         })
                         .collect();
                     let z = self.settings.zoom;
-                    match components::settings_panel(ui, &agents, z, z > ZOOM_MIN + 1e-3, z < ZOOM_MAX - 1e-3) {
+                    let panel = components::settings_panel(
+                        ui,
+                        &agents,
+                        z,
+                        z > ZOOM_MIN + 1e-3,
+                        z < ZOOM_MAX - 1e-3,
+                        self.settings.auto_refresh,
+                    );
+                    match panel {
                         Some(SettingsAction::Toggle(i)) => self.toggle_agent(i),
                         Some(SettingsAction::Zoom(steps)) => self.settings.zoom_by(steps),
+                        Some(SettingsAction::AutoRefresh(a)) => self.settings.auto_refresh = a,
                         None => {}
                     }
                     ui.add_space(GAP);

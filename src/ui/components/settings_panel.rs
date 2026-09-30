@@ -1,3 +1,5 @@
+use super::segmented;
+use crate::domain::refresh::AutoRefresh;
 use crate::ui::theme::{regular, shade, white, MUTED, TEXT, TEXT_SOFT};
 use eframe::egui::{
     pos2, vec2, Align, Align2, Button, CursorIcon, Frame, Id, Layout, Margin, Rect, RichText, Sense, Stroke, Ui,
@@ -14,6 +16,7 @@ pub struct Agent<'a> {
 pub enum SettingsAction {
     Toggle(usize),
     Zoom(i32),
+    AutoRefresh(AutoRefresh),
 }
 
 pub fn settings_panel(
@@ -22,6 +25,7 @@ pub fn settings_panel(
     zoom: f32,
     can_shrink: bool,
     can_grow: bool,
+    auto_refresh: AutoRefresh,
 ) -> Option<SettingsAction> {
     let mut action = None;
     Frame::NONE.fill(white(0.04)).corner_radius(10.0).inner_margin(Margin::same(12)).show(ui, |ui| {
@@ -50,6 +54,16 @@ pub fn settings_panel(
                 );
                 if ui.add_enabled(can_shrink, btn("−")).on_hover_cursor(CursorIcon::PointingHand).clicked() {
                     action = Some(SettingsAction::Zoom(-1));
+                }
+            });
+        });
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Actualisation").size(10.0).color(*MUTED));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                let mut i = AutoRefresh::ALL.iter().position(|a| *a == auto_refresh).unwrap_or(0);
+                if segmented(ui, Id::new("auto_refresh"), &AutoRefresh::ALL.map(AutoRefresh::label), &mut i) {
+                    action = Some(SettingsAction::AutoRefresh(AutoRefresh::ALL[i]));
                 }
             });
         });

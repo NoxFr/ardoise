@@ -2,6 +2,7 @@ mod common;
 
 use ardoise::app::{App, Config};
 use ardoise::domain::period::Period;
+use ardoise::domain::refresh::AutoRefresh;
 use ardoise::domain::usage::Entry;
 use ardoise::settings::Settings;
 use ardoise::ui::theme;
@@ -339,6 +340,27 @@ fn zoom_is_bounded() {
     h.get_by_label("60 %");
     assert!(disabled(&h, "−"));
     assert!(!disabled(&h, "+"));
+}
+
+#[test]
+fn auto_refresh_interval_can_be_changed_and_is_persisted() {
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("settings.json");
+    let make =
+        || config(Fake::new("claude", "Claude Code", claude_sample()), opencode_sample(), None, Some(path.clone()));
+    let mut h = harness_with(make());
+    open_settings(&mut h);
+    let toggled = |h: &H, l| h.get_by_label(l).accesskit_node().toggled();
+    assert_eq!(toggled(&h, "1 min"), Some(Toggled::True), "réglage par défaut");
+
+    click(&mut h, "Off");
+
+    assert_eq!(toggled(&h, "Off"), Some(Toggled::True));
+    assert_eq!(Settings::load(&path).auto_refresh, AutoRefresh::Off);
+
+    let mut h = harness_with(make());
+    open_settings(&mut h);
+    assert_eq!(toggled(&h, "Off"), Some(Toggled::True), "restauré au redémarrage");
 }
 
 #[test]

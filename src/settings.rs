@@ -1,4 +1,5 @@
 use crate::domain::period::Period;
+use crate::domain::refresh::AutoRefresh;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -20,11 +21,19 @@ pub struct Settings {
     pub zoom: f32,
     /// Taille choisie à la souris ; `None` : la hauteur suit le contenu.
     pub size: Option<[f32; 2]>,
+    pub auto_refresh: AutoRefresh,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { period: Period::Week, details: false, agents: None, zoom: 1.0, size: None }
+        Settings {
+            period: Period::Week,
+            details: false,
+            agents: None,
+            zoom: 1.0,
+            size: None,
+            auto_refresh: AutoRefresh::default(),
+        }
     }
 }
 
@@ -75,6 +84,7 @@ mod tests {
             agents: Some(vec!["codex".into()]),
             zoom: 1.3,
             size: Some([500.0, 700.0]),
+            auto_refresh: AutoRefresh::S10,
         };
         s.save(&path).unwrap();
         assert_eq!(Settings::load(&path), s);
