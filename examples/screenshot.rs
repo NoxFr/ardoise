@@ -1,5 +1,6 @@
 //! Lance Ardoise avec des données factices, pour produire la capture d'écran du README.
 //! `cargo run --release --example screenshot`
+//! `ARDOISE_DEMO_DETAILS=0 cargo run --release --example screenshot` : sans le détail par modèle.
 
 use ardoise::app::{App, Config, WIDTH};
 use ardoise::domain::period::Period;
@@ -74,8 +75,9 @@ fn opencode_sample() -> Vec<Entry> {
 }
 
 fn main() -> eframe::Result {
+    let details = std::env::var("ARDOISE_DEMO_DETAILS").map(|v| v != "0").unwrap_or(true);
     let settings_path = std::env::temp_dir().join("ardoise-screenshot-settings.json");
-    let settings = Settings { period: Period::Month, details: true, budget: Some(400.0), ..Settings::default() };
+    let settings = Settings { period: Period::Month, details, budget: Some(400.0), ..Settings::default() };
     settings.save(&settings_path).expect("écriture des réglages de démonstration");
 
     let config = Config {

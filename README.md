@@ -2,13 +2,16 @@
 
 [![CI](https://github.com/NoxFr/ardoise/actions/workflows/ci.yml/badge.svg)](https://github.com/NoxFr/ardoise/actions/workflows/ci.yml)
 ![Rust](https://img.shields.io/badge/rust-2021-orange?logo=rust)
-![Linux](https://img.shields.io/badge/plateforme-Linux-blue?logo=linux&logoColor=white)
+![Plateformes](https://img.shields.io/badge/plateforme-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT%20%2F%20Apache--2.0-green)
 
 Petit widget de bureau pour suivre ce que coûtent vos agents de code : Claude Code, Codex
 et OpenCode. Tout est lu en local, rien ne part sur le réseau.
 
-<p align="center"><img src="assets/screenshot.png" width="360" alt="Ardoise, période 30 jours, détails activés, trois agents"></p>
+<p align="center">
+  <img src="assets/screenshot.png" width="360" alt="Ardoise, période 30 jours, trois agents">
+  <img src="assets/screenshot-details.png" width="360" alt="Ardoise, détails activés : tokens par modèle">
+</p>
 
 ## Ce qu'il lit
 
