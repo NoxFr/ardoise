@@ -8,7 +8,7 @@
 Petit widget de bureau pour suivre ce que coûtent vos agents de code : Claude Code, Codex
 et OpenCode. Tout est lu en local, rien ne part sur le réseau.
 
-<p align="center"><img src="assets/screenshot.png" width="360" alt="Ardoise, période 30 jours, trois agents"></p>
+<p align="center"><img src="assets/screenshot.png" width="360" alt="Ardoise, période 30 jours, détails activés, trois agents"></p>
 
 ## Ce qu'il lit
 
@@ -51,7 +51,11 @@ install -Dm644 assets/ardoise.desktop ~/.local/share/applications/ardoise.deskto
 
 - **Jour · 7 j · 30 j · 1 an** : la période affichée, barres par heure, jour ou mois.
 - **Détails** : tokens entrants et sortants par modèle.
-- **Roue crantée** : agents affichés et taille du widget.
+- **Pastille de plan** : à côté d'un agent, le plan du compte (ex. `Max`, `Team`, `Enterprise`).
+  Sous abonnement forfaitaire, la section affiche des tokens au lieu d'un montant et sort du
+  total ; une jauge nommée indique l'avancement de chaque fenêtre de quota.
+- **Roue crantée** : agents affichés, taille du widget et intervalle d'actualisation automatique
+  (désactivé, 5 s à 5 min).
 - La fenêtre se déplace en glissant n'importe où sur le fond.
 
 Pour une barre de budget sur 30 jours glissants, tous agents confondus :
@@ -60,7 +64,8 @@ Pour une barre de budget sur 30 jours glissants, tous agents confondus :
 ARDOISE_BUDGET=400 ardoise
 ```
 
-Les réglages sont gardés dans `~/.config/ardoise/settings.json`.
+Les réglages (période, détails, agents affichés, taille, intervalle d'actualisation) sont gardés
+dans `~/.config/ardoise/settings.json`.
 
 ## Limites
 
@@ -75,9 +80,8 @@ cargo test                    # unitaires, intégration, propriétés, interface
 cargo clippy --all-targets
 cargo fmt
 RUST_LOG=ardoise=debug cargo run   # durée et volume de chaque chargement
+cargo run --release --example screenshot   # lance Ardoise avec des données factices (capture d'écran)
 ```
-
-L'architecture et les pièges connus sont décrits dans [AGENTS.md](AGENTS.md).
 
 ## Licence
 

@@ -4,6 +4,10 @@
 agents de code (Claude Code, Codex, OpenCode) à partir de leurs données locales.
 La maquette de référence est un fichier HTML (thème sombre, couleurs OKLCH) reproduit dans `ui/theme.rs`.
 
+Ce fichier doit être mis à jour au fil de l'eau : toute modification notable (nouveau fournisseur,
+nouveau composant, piège découvert) s'accompagne d'une mise à jour de la section concernée, dans le
+même changement plutôt qu'après coup.
+
 ## Commandes
 
 ```bash
@@ -14,6 +18,7 @@ cargo test                              # unitaires + intégration + propriété
 cargo clippy --all-targets              # doit rester sans warning
 cargo fmt                               # rustfmt.toml : max_width = 120
 cargo install --path . --root ~/.local --locked --force   # installe ~/.local/bin/ardoise
+cargo run --release --example screenshot   # widget avec données factices, pour la capture du README
 ```
 
 ## Architecture
@@ -44,6 +49,8 @@ src/
     components/           un fichier par composant : header, segmented, settings_panel, total,
                           stacked_bar, provider_section, model_row, chart, budget, subscription,
                           gauge, logos, cell
+examples/
+  screenshot.rs            fournisseurs factices (aucune donnée locale) pour regénérer assets/screenshot.png
 ```
 
 Dépendances : `domain` ne dépend de rien ; `providers` dépend de `domain` ; `ui` dépend de
