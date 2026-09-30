@@ -1,7 +1,7 @@
 mod common;
 
-use ardoise::providers::Provider;
 use ardoise::providers::claude::Claude;
+use ardoise::providers::Provider;
 use chrono::{Duration, Utc};
 use common::log_line;
 use std::fs;

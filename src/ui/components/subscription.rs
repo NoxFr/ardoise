@@ -2,7 +2,7 @@ use crate::domain::subscription::{RateLimitWindow, Subscription};
 use crate::ui::format;
 use crate::ui::theme::{BUDGET, MUTED};
 use chrono::{DateTime, Utc};
-use eframe::egui::{Align, Layout, RichText, Sense, Ui, vec2};
+use eframe::egui::{vec2, Align, Layout, RichText, Sense, Ui};
 
 fn window_gauge(ui: &mut Ui, w: &RateLimitWindow, now: DateTime<Utc>) {
     ui.horizontal(|ui| {

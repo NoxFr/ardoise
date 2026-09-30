@@ -5,7 +5,7 @@ use ardoise::domain::usage::Entry;
 use ardoise::providers::Provider;
 use chrono::{DateTime, Duration, Utc};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 
 pub fn entry(model: &str, ago: Duration, cost: f64) -> Entry {
     Entry { time: Utc::now() - ago, model: model.into(), input: 1_000, output: 100, cost }
@@ -59,10 +59,10 @@ impl Provider for Fake {
     }
 
     fn load(&self, _: DateTime<Utc>) -> Vec<Entry> {
-        if self.calls.fetch_add(1, Ordering::SeqCst) > 0
-            && let Some(gate) = &self.gate
-        {
-            gate.lock().unwrap().recv().unwrap();
+        if self.calls.fetch_add(1, Ordering::SeqCst) > 0 {
+            if let Some(gate) = &self.gate {
+                gate.lock().unwrap().recv().unwrap();
+            }
         }
         self.entries.clone()
     }

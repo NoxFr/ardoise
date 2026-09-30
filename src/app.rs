@@ -3,13 +3,13 @@ use crate::domain::period::Period;
 use crate::providers::Provider;
 use crate::settings::{Settings, ZOOM_MAX, ZOOM_MIN};
 use crate::ui::components::{self, Agent, HeaderAction, HeaderState, Section, SettingsAction};
-use crate::ui::theme::{self, MUTED, PANEL, white};
+use crate::ui::theme::{self, white, MUTED, PANEL};
 use chrono::{DateTime, Local, NaiveDate};
 use eframe::egui::{self, Margin, ResizeDirection, RichText, Sense, Stroke, Ui, ViewportCommand};
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
 const REFRESH_EVERY: Duration = Duration::from_secs(60);
@@ -229,9 +229,8 @@ impl App {
 
     fn save_settings(&mut self) {
         self.save_due = None;
-        if let Some(path) = &self.settings_path
-            && let Err(e) = self.settings.save(path)
-        {
+        let Some(path) = &self.settings_path else { return };
+        if let Err(e) = self.settings.save(path) {
             log::warn!("réglages non enregistrés dans {} : {e}", path.display());
         }
     }
@@ -468,7 +467,7 @@ impl eframe::App for App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use eframe::egui::{Rect, pos2};
+    use eframe::egui::{pos2, Rect};
     use rstest::rstest;
 
     #[rstest]

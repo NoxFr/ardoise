@@ -1,5 +1,5 @@
-use ardoise::providers::Provider;
 use ardoise::providers::opencode::OpenCode;
+use ardoise::providers::Provider;
 use chrono::{Duration, Utc};
 use rusqlite::Connection;
 use tempfile::TempDir;

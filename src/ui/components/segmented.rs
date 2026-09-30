@@ -1,5 +1,5 @@
-use crate::ui::theme::{TAB_OFF, TAB_ON, regular, white};
-use eframe::egui::{Align2, Color32, CursorIcon, Id, Rect, Sense, Ui, WidgetInfo, WidgetType, pos2, vec2};
+use crate::ui::theme::{regular, white, TAB_OFF, TAB_ON};
+use eframe::egui::{pos2, vec2, Align2, Color32, CursorIcon, Id, Rect, Sense, Ui, WidgetInfo, WidgetType};
 
 const PAD: f32 = 2.0;
 const GAP: f32 = 2.0;

@@ -1,6 +1,6 @@
 use super::period::Period;
 use super::subscription::Subscription;
-use super::usage::{Bucket, Entry, Summary, histogram, histogram_by, summarize};
+use super::usage::{histogram, histogram_by, summarize, Bucket, Entry, Summary};
 use std::cmp::Reverse;
 
 /// Ce qu'un fournisseur a renvoyé au dernier chargement.

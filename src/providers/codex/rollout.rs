@@ -1,7 +1,7 @@
 use super::pricing::cost;
 use crate::domain::subscription::{RateLimitWindow, Subscription};
 use crate::domain::usage::Entry;
-use crate::providers::files::{FileCache, jsonl_files};
+use crate::providers::files::{jsonl_files, FileCache};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::Value;
@@ -46,14 +46,14 @@ fn parse(lines: impl Iterator<Item = String>) -> Rollout {
     for line in lines {
         let Ok(v) = serde_json::from_str::<Value>(&line) else { continue };
         let payload = &v["payload"];
-        if payload["type"].as_str() == Some("token_count")
-            && let Ok(raw) = RateLimitsRaw::deserialize(&payload["rate_limits"])
-        {
-            out.subscription = Some(Subscription {
-                plan: raw.plan_type.unwrap_or_default(),
-                primary: window(raw.primary),
-                secondary: window(raw.secondary),
-            });
+        if payload["type"].as_str() == Some("token_count") {
+            if let Ok(raw) = RateLimitsRaw::deserialize(&payload["rate_limits"]) {
+                out.subscription = Some(Subscription {
+                    plan: raw.plan_type.unwrap_or_default(),
+                    primary: window(raw.primary),
+                    secondary: window(raw.secondary),
+                });
+            }
         }
         match (v["type"].as_str(), payload["type"].as_str()) {
             (Some("turn_context"), _) => {

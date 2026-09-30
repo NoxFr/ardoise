@@ -2,9 +2,9 @@ use super::cell::cell;
 use crate::domain::period::Granularity;
 use crate::domain::usage::{Bucket, ModelStat};
 use crate::ui::format;
-use crate::ui::theme::{MUTED, white};
+use crate::ui::theme::{white, MUTED};
 use chrono::Local;
-use eframe::egui::{Align, Color32, CornerRadius, Rect, RichText, Sense, Shape, Stroke, Ui, pos2, vec2};
+use eframe::egui::{pos2, vec2, Align, Color32, CornerRadius, Rect, RichText, Sense, Shape, Stroke, Ui};
 
 const HEIGHT: f32 = 52.0;
 

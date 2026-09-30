@@ -1,5 +1,5 @@
 use crate::ui::theme::shade;
-use eframe::egui::{Color32, Painter, Pos2, Rect, Stroke, Vec2, pos2, vec2};
+use eframe::egui::{pos2, vec2, Color32, Painter, Pos2, Rect, Stroke, Vec2};
 use std::f32::consts::PI;
 
 const SLATE: Color32 = Color32::from_rgb(47, 52, 58);

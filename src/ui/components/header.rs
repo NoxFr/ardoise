@@ -1,9 +1,9 @@
 use super::{segmented, segmented_width};
 use crate::domain::period::Period;
-use crate::ui::theme::{ICON, TAB_OFF, TAB_ON, regular, semibold, white};
+use crate::ui::theme::{regular, semibold, white, ICON, TAB_OFF, TAB_ON};
 use eframe::egui::{
-    Align, Button, Color32, CursorIcon, Id, Layout, Painter, Pos2, Response, RichText, Sense, Shape, Stroke, Ui, Vec2,
-    WidgetInfo, WidgetType, vec2,
+    vec2, Align, Button, Color32, CursorIcon, Id, Layout, Painter, Pos2, Response, RichText, Sense, Shape, Stroke, Ui,
+    Vec2, WidgetInfo, WidgetType,
 };
 use std::f32::consts::PI;
 

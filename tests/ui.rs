@@ -6,14 +6,14 @@ use ardoise::domain::usage::Entry;
 use ardoise::settings::Settings;
 use ardoise::ui::theme;
 use chrono::Duration;
-use common::{Fake, arc, entry};
-use eframe::egui::{self, Vec2, accesskit::Toggled};
-use egui_kittest::Harness;
+use common::{arc, entry, Fake};
+use eframe::egui::{self, accesskit::Toggled, Vec2};
 use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::Harness;
 use rstest::rstest;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use tempfile::TempDir;
 
 type H = Harness<'static, Option<App>>;

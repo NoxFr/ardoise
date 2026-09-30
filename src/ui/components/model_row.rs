@@ -2,7 +2,7 @@ use super::cell::cell;
 use crate::domain::usage::ModelStat;
 use crate::ui::format;
 use crate::ui::theme::{MUTED, TEXT, TEXT_SOFT};
-use eframe::egui::{Align, Color32, Rect, RichText, Sense, Ui, pos2, vec2};
+use eframe::egui::{pos2, vec2, Align, Color32, Rect, RichText, Sense, Ui};
 
 const BAR_W: f32 = 70.0;
 const VALUE_W: f32 = 54.0;

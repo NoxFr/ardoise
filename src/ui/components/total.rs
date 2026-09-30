@@ -1,6 +1,6 @@
 use crate::ui::format;
-use crate::ui::theme::{FAINT, TEXT_SUB, semibold};
-use eframe::egui::{Align, Layout, RichText, Ui, vec2};
+use crate::ui::theme::{semibold, FAINT, TEXT_SUB};
+use eframe::egui::{vec2, Align, Layout, RichText, Ui};
 
 const HEIGHT: f32 = 30.0;
 

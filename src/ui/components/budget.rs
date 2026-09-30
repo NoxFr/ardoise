@@ -1,6 +1,6 @@
 use crate::ui::format;
 use crate::ui::theme::{BUDGET, MUTED};
-use eframe::egui::{Align, Layout, RichText, Sense, Ui, vec2};
+use eframe::egui::{vec2, Align, Layout, RichText, Sense, Ui};
 
 pub fn budget(ui: &mut Ui, spent: f64, budget: f64) {
     ui.horizontal(|ui| {

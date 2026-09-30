@@ -4,8 +4,8 @@ use crate::domain::period::Granularity;
 use crate::domain::subscription::Subscription;
 use crate::domain::usage::{Bucket, ModelStat, Summary};
 use crate::ui::format;
-use crate::ui::theme::{MUTED, semibold, shade, white};
-use eframe::egui::{Align, Rect, RichText, Sense, Stroke, Ui, pos2, vec2};
+use crate::ui::theme::{semibold, shade, white, MUTED};
+use eframe::egui::{pos2, vec2, Align, Rect, RichText, Sense, Stroke, Ui};
 
 pub struct Section<'a> {
     pub id: &'a str,
