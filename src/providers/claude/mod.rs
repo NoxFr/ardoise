@@ -45,7 +45,8 @@ fn active_subscription(path: &Path) -> Option<Subscription> {
     let v: serde_json::Value = serde_json::from_str(&raw).ok()?;
     let account = &v["oauthAccount"];
     let billing = account["billingType"].as_str()?;
-    if !billing.contains("subscription") {
+    // `*_contracted` : contrat Enterprise facturé à l'usage, pas un forfait.
+    if !billing.contains("subscription") || billing.contains("contracted") {
         return None;
     }
     let plan = account["seatTier"].as_str().unwrap_or(billing);
@@ -99,6 +100,16 @@ mod tests {
     fn api_billing_has_no_subscription() {
         let dir = TempDir::new().unwrap();
         let path = write_account(&dir, r#"{"oauthAccount":{"billingType":"api_key"}}"#);
+        assert!(active_subscription(&path).is_none());
+    }
+
+    #[test]
+    fn contracted_billing_is_usage_based() {
+        let dir = TempDir::new().unwrap();
+        let path = write_account(
+            &dir,
+            r#"{"oauthAccount":{"billingType":"stripe_subscription_contracted","seatTier":"enterprise"}}"#,
+        );
         assert!(active_subscription(&path).is_none());
     }
 
