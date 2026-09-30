@@ -22,6 +22,22 @@ Les chemins suivent `CLAUDE_CONFIG_DIR`, `CODEX_HOME` et `XDG_DATA_HOME` s'ils s
 
 ## Installation
 
+### Depuis une release
+
+Télécharge `ardoise-linux-x86_64.tar.gz` sur la [page des releases](https://github.com/NoxFr/ardoise/releases),
+puis :
+
+```bash
+tar xzf ardoise-linux-x86_64.tar.gz
+./install.sh
+```
+
+Le script installe le binaire, l'icône et le lanceur selon la spécification XDG (`~/.local/bin`,
+`~/.local/share/icons`, `~/.local/share/applications`, sans droits root). Ardoise apparaît ensuite
+dans le menu des applications, ou se lance avec `ardoise`.
+
+### Depuis les sources
+
 Il faut une toolchain Rust 1.95 ou plus récente ([rustup](https://rustup.rs)).
 
 ```bash
@@ -30,8 +46,6 @@ cargo install --path . --root ~/.local --locked
 install -Dm644 assets/icon.png ~/.local/share/icons/hicolor/256x256/apps/ardoise.png
 install -Dm644 assets/ardoise.desktop ~/.local/share/applications/ardoise.desktop
 ```
-
-Ardoise apparaît ensuite dans le menu des applications, ou se lance avec `ardoise`.
 
 ## Utilisation
 
