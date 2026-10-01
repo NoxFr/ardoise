@@ -1,6 +1,6 @@
 # Ardoise
 
-[![CI](https://github.com/NoxFr/ardoise/actions/workflows/ci.yml/badge.svg)](https://github.com/NoxFr/ardoise/actions/workflows/ci.yml)
+[![CI](https://github.com/noxfr/ardoise/actions/workflows/ci.yml/badge.svg)](https://github.com/noxfr/ardoise/actions/workflows/ci.yml)
 ![Rust](https://img.shields.io/badge/rust-2021-orange?logo=rust)
 ![Plateformes](https://img.shields.io/badge/plateforme-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT%20%2F%20Apache--2.0-green)
@@ -25,9 +25,17 @@ Les chemins suivent `CLAUDE_CONFIG_DIR`, `CODEX_HOME` et `XDG_DATA_HOME` s'ils s
 
 ## Installation
 
+### Homebrew (macOS, Linux)
+
+```bash
+brew install noxfr/tap/ardoise
+```
+
+Installe seulement le binaire `ardoise` ; sous Linux, l'archive de release ajoute l'icône et le lanceur.
+
 ### Depuis une release
 
-Télécharge `ardoise-linux-x86_64.tar.gz` sur la [page des releases](https://github.com/NoxFr/ardoise/releases),
+Télécharge `ardoise-linux-x86_64.tar.gz` sur la [page des releases](https://github.com/noxfr/ardoise/releases),
 puis :
 
 ```bash
@@ -44,7 +52,7 @@ dans le menu des applications, ou se lance avec `ardoise`.
 Il faut une toolchain Rust 1.95 ou plus récente ([rustup](https://rustup.rs)).
 
 ```bash
-git clone https://github.com/NoxFr/ardoise && cd ardoise
+git clone https://github.com/noxfr/ardoise && cd ardoise
 cargo install --path . --root ~/.local --locked
 install -Dm644 assets/icon.png ~/.local/share/icons/hicolor/256x256/apps/ardoise.png
 install -Dm644 assets/ardoise.desktop ~/.local/share/applications/ardoise.desktop
