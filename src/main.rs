@@ -1,3 +1,5 @@
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 use ardoise::app::{App, Config, WIDTH};
 use ardoise::providers;
 use ardoise::settings::Settings;

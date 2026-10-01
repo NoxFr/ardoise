@@ -136,3 +136,6 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
   la fermeture) ; `manual_size_is_saved_once_the_resize_settles`.
 - Premier chargement : loader, et pas de `fit_window` tant que rien n'est chargé (sinon la fenêtre
   se réduit au loader).
+- Windows : `windows_subsystem = "windows"` en release (sinon une console s'ouvre avec le widget,
+  et les journaux `RUST_LOG` n'y sont plus visibles) ; CRT MSVC lié statiquement
+  (`.cargo/config.toml`) pour un `.exe` autonome, sans `vcruntime140.dll`.
