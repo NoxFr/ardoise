@@ -804,3 +804,61 @@ fn manual_size_is_saved_once_the_resize_settles() {
 
     assert!(Settings::load(&path).size.is_some());
 }
+
+/// Ce que fait `raw_input_hook` au frame suivant une commande qui confie la souris au gestionnaire.
+fn hand_back_pointer(h: &mut H) {
+    let mut events = Vec::new();
+    h.state_mut().as_mut().unwrap().release_handed_over_pointer(&mut events);
+    assert!(!events.is_empty(), "aucune souris confiée au gestionnaire de fenêtres");
+    for e in events {
+        h.event(e);
+    }
+}
+
+fn chart_hover_works(h: &mut H) -> bool {
+    let title = first_rect(h, "Dépenses par jour");
+    let right = h.get_all_by_label_contains("moy.").next().unwrap().rect().right();
+    let before = h.get_all_by_label_contains("$10,00").count();
+    h.event(egui::Event::PointerMoved(egui::pos2(right - 25.0, title.bottom() + 30.0)));
+    h.run_steps(60);
+    h.get_all_by_label_contains("$10,00").count() == before + 1
+}
+
+#[test]
+fn hover_responds_again_after_a_window_drag() {
+    let (mut h, _) = harness(None);
+    assert!(press_started_window_drag(&mut h, "Dépenses par jour", 20.0));
+    hand_back_pointer(&mut h);
+    assert!(chart_hover_works(&mut h));
+}
+
+#[test]
+fn hover_responds_again_after_a_window_resize() {
+    let (mut h, _) = harness(None);
+    let corner = egui::pos2(ardoise::app::WIDTH - 2.0, 1198.0);
+    h.event(egui::Event::PointerMoved(corner));
+    h.event(egui::Event::PointerButton {
+        pos: corner,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::default(),
+    });
+    h.event(egui::Event::PointerMoved(corner + egui::vec2(20.0, 20.0)));
+    let mut resize = false;
+    for _ in 0..3 {
+        h.step();
+        resize |= emitted(&h, |c| matches!(c, egui::ViewportCommand::BeginResize(_)));
+    }
+    assert!(resize);
+    hand_back_pointer(&mut h);
+    assert!(chart_hover_works(&mut h));
+}
+
+#[test]
+fn window_can_be_moved_again_right_away() {
+    let (mut h, _) = harness(None);
+    assert!(press_started_window_drag(&mut h, "Dépenses par jour", 20.0));
+    hand_back_pointer(&mut h);
+    h.step();
+    assert!(press_started_window_drag(&mut h, "Dépenses par jour", 20.0), "pas de délai entre deux gestes");
+}

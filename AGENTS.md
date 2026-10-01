@@ -105,11 +105,19 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
 - Fenêtre sans décoration : n'envoyer `StartDrag` qu'une fois le glissé décidé
   (`is_decidedly_dragging`). Sous X11 le gestionnaire de fenêtres capture la souris et avale le
   relâchement : un `StartDrag` dès l'appui casse tous les boutons. Labels non sélectionnables.
-  Comme le relâchement est avalé, egui croit ensuite le bouton enfoncé : `StartDrag` une seule fois
-  par geste (`drag_started`, plus un délai minimal), sinon il part à chaque frame et gèle GNOME Shell
-  (`window_drag_is_started_once_per_gesture`). Même règle pour `BeginResize` (bords gauche, droit,
-  bas) : armé à l'appui, envoyé une fois. Une taille manuelle (`Settings::size`, en points hors
-  zoom) coupe `fit_window` ; double-clic sur un bord pour revenir à la hauteur auto.
+  Comme le relâchement est avalé, egui croirait le bouton enfoncé jusqu'au clic suivant : plus aucun
+  survol ne répond (fenêtre « gelée » après un déplacement ou un redimensionnement). `App::hand_over`
+  envoie la commande et `raw_input_hook` injecte au frame suivant un relâchement simulé
+  (`hover_responds_again_after_a_window_resize`) ; dans les tests kittest, qui n'appellent pas ce
+  hook, `hand_back_pointer` le remplace. `StartDrag` une seule fois par geste (`drag_started`),
+  sinon il part à chaque frame et gèle GNOME Shell (`window_drag_is_started_once_per_gesture`).
+  Même règle pour `BeginResize` (bords gauche, droit, bas) : armé à l'appui, envoyé une fois. Une
+  taille manuelle (`Settings::size`, en points hors zoom) coupe `fit_window` ; double-clic sur un
+  bord pour revenir à la hauteur auto.
+- GPU : egui prend le GPU « haute performance » par défaut. Sur un portable NVIDIA sous X11, la
+  carte dédiée étire l'ancienne image pendant tout un redimensionnement (le contenu ne suit qu'au
+  relâchement) et refuse la transparence (coins arrondis opaques). `main.rs` force le GPU intégré
+  (`PowerPreference::LowPower`) ; `WGPU_POWER_PREF=high` pour tester l'autre.
 - kittest ne garde que la sortie du dernier frame d'un `step()` : pour tester une commande de
   viewport émise à l'appui, injecter les événements à la main.
 - AccessKit expose l'état « sélectionné » d'egui comme `toggled`, pas `selected`.

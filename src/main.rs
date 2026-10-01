@@ -22,13 +22,22 @@ fn main() -> eframe::Result {
             .with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../assets/icon.png")).unwrap_or_default()),
         // Avec la vsync, sous X11 le gestionnaire de fenêtres étire l'image précédente pendant un
         // redimensionnement, le temps que la nouvelle arrive. egui ne redessine qu'à la demande.
-        wgpu_options: eframe::egui_wgpu::WgpuConfiguration::default().with_surface_config(
-            eframe::egui_wgpu::SurfaceConfig {
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration { wgpu_setup: low_power_gpu(), ..Default::default() }
+            .with_surface_config(eframe::egui_wgpu::SurfaceConfig {
                 present_mode: eframe::wgpu::PresentMode::AutoNoVsync,
                 ..eframe::egui_wgpu::SurfaceConfig::LOW_LATENCY
-            },
-        ),
+            }),
         ..Default::default()
     };
     eframe::run_native("Ardoise", options, Box::new(|cc| Ok(Box::new(App::new(&cc.egui_ctx, config)))))
+}
+
+/// GPU intégré plutôt que dédié (egui choisit « haute performance » par défaut) : sur un portable
+/// NVIDIA sous X11, la carte dédiée étire l'ancienne image pendant tout le redimensionnement et
+/// ignore la transparence. `WGPU_POWER_PREF=high` pour revenir au GPU dédié.
+fn low_power_gpu() -> eframe::egui_wgpu::WgpuSetup {
+    let mut setup = eframe::egui_wgpu::WgpuSetupCreateNew::without_display_handle();
+    setup.power_preference =
+        eframe::wgpu::PowerPreference::from_env().unwrap_or(eframe::wgpu::PowerPreference::LowPower);
+    eframe::egui_wgpu::WgpuSetup::CreateNew(setup)
 }

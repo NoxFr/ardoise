@@ -17,7 +17,6 @@ const PADDING: i8 = 18;
 const GAP: f32 = 16.0;
 const SECTION_GAP: f32 = 20.0;
 const RESIZE_EVERY: Duration = Duration::from_millis(200);
-const DRAG_EVERY: Duration = Duration::from_millis(500);
 const MIN_HEIGHT: f32 = 120.0;
 const MAX_HEIGHT: f32 = 1400.0;
 /// Délai avant d'écrire une taille choisie à la souris : pas une écriture disque par frame.
@@ -61,7 +60,8 @@ pub struct App {
     updated: Option<DateTime<Local>>,
     loading: bool,
     last_resize: Option<Instant>,
-    last_drag: Option<Instant>,
+    /// Souris confiée au gestionnaire de fenêtres (`StartDrag`, `BeginResize`) à cette position.
+    handed_over: Option<egui::Pos2>,
     /// Bord appuyé, en attente d'un glissé décidé pour lancer le redimensionnement.
     resize_armed: Option<ResizeDirection>,
     last_refresh: Instant,
@@ -86,7 +86,7 @@ impl App {
             updated: None,
             loading: false,
             last_resize: None,
-            last_drag: None,
+            handed_over: None,
             resize_armed: None,
             last_refresh: Instant::now(),
             tx,
@@ -181,8 +181,7 @@ impl App {
 
     /// Fenêtre sans décoration : les bords (hors haut, réservé au déplacement) lancent un
     /// redimensionnement natif. Une taille choisie à la main désactive l'ajustement au contenu ;
-    /// un double-clic sur un bord le rétablit. Comme `StartDrag`, `BeginResize` confie la souris
-    /// au gestionnaire de fenêtres : une seule fois par appui, sinon GNOME Shell gèle.
+    /// un double-clic sur un bord le rétablit.
     fn handle_resize(&mut self, ctx: &egui::Context) {
         let window = ctx.viewport_rect();
         // En points hors zoom, comme `with_inner_size` au démarrage.
@@ -210,17 +209,34 @@ impl App {
         }
         if let Some(dir) = self.resize_armed.filter(|_| dragging) {
             self.resize_armed = None;
-            if self.last_drag.is_none_or(|t| t.elapsed() >= DRAG_EVERY) {
-                self.last_drag = Some(Instant::now());
-                ctx.send_viewport_cmd(ViewportCommand::BeginResize(dir));
-                self.settings.size = Some(current);
-            }
+            self.hand_over(ctx, ViewportCommand::BeginResize(dir));
+            self.settings.size = Some(current);
         }
         if released {
             self.resize_armed = None;
         }
         if let Some(size) = &mut self.settings.size {
             *size = current;
+        }
+    }
+
+    fn hand_over(&mut self, ctx: &egui::Context, command: ViewportCommand) {
+        self.handed_over = Some(ctx.input(|i| i.pointer.latest_pos()).unwrap_or_default());
+        ctx.send_viewport_cmd(command);
+    }
+
+    /// Le gestionnaire de fenêtres avale le relâchement qui termine un `StartDrag` ou un
+    /// `BeginResize` : sans relâchement simulé, egui croit le bouton enfoncé jusqu'au prochain
+    /// clic, plus aucun survol ne répond et chaque frame prolonge le glissé.
+    pub fn release_handed_over_pointer(&mut self, events: &mut Vec<egui::Event>) {
+        if let Some(pos) = self.handed_over.take() {
+            events.push(egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::default(),
+            });
+            events.push(egui::Event::PointerGone);
         }
     }
 
@@ -267,12 +283,9 @@ impl App {
             .inner_margin(Margin::same(PADDING));
         egui::CentralPanel::default().frame(frame).show(ui, |ui| {
             ui.style_mut().interaction.selectable_labels = false;
-            // Une seule fois par glissé, quand la souris bouge : le gestionnaire de fenêtres avale le
-            // relâchement, egui croit le bouton toujours enfoncé et un StartDrag répété gèle GNOME Shell.
             let bg = ui.interact(ui.max_rect(), ui.id().with("background"), Sense::click_and_drag());
-            if bg.drag_started() && self.last_drag.is_none_or(|t| t.elapsed() >= DRAG_EVERY) {
-                self.last_drag = Some(Instant::now());
-                ctx.send_viewport_cmd(ViewportCommand::StartDrag);
+            if bg.drag_started() {
+                self.hand_over(&ctx, ViewportCommand::StartDrag);
             }
             let status = if self.loading { "Actualisation…".to_string() } else { format!("Mis à jour {updated}") };
             let header = HeaderState {
@@ -470,6 +483,10 @@ fn resize_cursor(dir: ResizeDirection) -> egui::CursorIcon {
 impl eframe::App for App {
     fn clear_color(&self, _: &egui::Visuals) -> [f32; 4] {
         [0.0; 4]
+    }
+
+    fn raw_input_hook(&mut self, _: &egui::Context, raw_input: &mut egui::RawInput) {
+        self.release_handed_over_pointer(&mut raw_input.events);
     }
 
     fn ui(&mut self, ui: &mut Ui, _: &mut eframe::Frame) {
