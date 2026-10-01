@@ -144,6 +144,10 @@ capture d'écran : certains défauts (chevauchements, contrastes) ne se voient q
   la fermeture) ; `manual_size_is_saved_once_the_resize_settles`.
 - Premier chargement : loader, et pas de `fit_window` tant que rien n'est chargé (sinon la fenêtre
   se réduit au loader).
+- Homebrew : tap `noxfr/homebrew-tap`, formule générée par `packaging/homebrew-formula.sh` (binaires
+  des releases, pas de compilation) et poussée par le job `homebrew` de `release.yml`, avec le secret
+  `HOMEBREW_TAP_TOKEN` (le `GITHUB_TOKEN` n'écrit pas dans un autre dépôt). Renommer une archive de
+  `build.yml` impose de mettre à jour le script.
 - Windows : `windows_subsystem = "windows"` en release (sinon une console s'ouvre avec le widget,
   et les journaux `RUST_LOG` n'y sont plus visibles) ; CRT MSVC lié statiquement
   (`.cargo/config.toml`) pour un `.exe` autonome, sans `vcruntime140.dll`.

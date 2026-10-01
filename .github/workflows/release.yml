@@ -24,3 +24,31 @@ jobs:
         with:
           files: artifacts/*
           generate_release_notes: true
+
+  homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: actions/checkout@v5
+        with:
+          repository: noxfr/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update formula
+        run: |
+          mkdir -p tap/Formula
+          sh packaging/homebrew-formula.sh "${GITHUB_REF_NAME#v}" artifacts > tap/Formula/ardoise.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/ardoise.rb
+          git diff --cached --quiet || git commit -m "ardoise ${GITHUB_REF_NAME}"
+          git push
